@@ -155,7 +155,7 @@ export function CarbsPerYard({ points, yards, modern = false, selected, onSelect
       return <g key={p.yard} className={[p.current ? 'current' : '', selected === p.yard ? 'selected' : ''].join(' ').trim() || undefined}>
         {bars}
         {!p.hasEntries && !p.current && <text className="muted-mark" x={xOf(f, p.yard)} y={y(0) - 8} textAnchor="middle">–</text>}
-        {modern ? label && <text className="bar-value" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">{label}</text>
+        {modern ? label && <text className={p.carbs >= p.carbMin ? 'bar-value hit' : 'bar-value'} x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">{label}</text>
           : p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">?</text>}
       </g>; })}
     <YardAxis f={f} />
