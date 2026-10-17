@@ -90,7 +90,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   for (const e of Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at))) {
     if (e.kind !== 'food') continue;
     const text = e.text.replace(FOOD_PREFIX, '');
-    if (PRESET_TEXTS.has(text) || FOODS.some(f => text.startsWith(f.text) || text.includes('small potato')) || recentCustom.some(r => r.text.trim().toLowerCase() === text.trim().toLowerCase())) continue;
+    if (PRESET_TEXTS.has(text) || FOODS.some(f => text.includes(f.text)) || text.includes('small potato') || recentCustom.some(r => r.text.trim().toLowerCase() === text.trim().toLowerCase())) continue;
     recentCustom.push({ text, carbsG: e.carbsG });
     if (recentCustom.length >= 6) break;
   }
