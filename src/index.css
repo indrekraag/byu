@@ -448,3 +448,6 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 @-webkit-keyframes logged { 0%, 35% { background: rgba(67, 214, 170, .35); border-color: var(--fluid); } 100% { } }
 .flash { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .flash-undo { background: none; border: 1px solid rgba(255,255,255,.3); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+/* Carbs bars: solid amber at the top, easing to 60% at the baseline. */
+.stop-carbs-a { stop-color: var(--carbs-a); stop-opacity: 1; }
+.stop-carbs-b { stop-color: var(--carbs-a); stop-opacity: .6; }
