@@ -8,7 +8,7 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
-import { DRINK_AMOUNTS, FOODS, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
+import { DRINK_AMOUNTS, FOODS, LAP_BOTTLE_ML, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
@@ -54,11 +54,11 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const labelOk = label === '' || (Number(label) >= 0 && Number(label) <= 100);
 
   const add = (...ops: Op[]) => log.enqueue(...ops);
-  function addDrink(ml: number) {
-    if (!drink || !labelOk) return;
-    const e = drinkEntry(drink, ml, new Date().toISOString(), uuid(), label === '' ? undefined : Number(label));
+  function addDrink(ml: number, kind: DrinkKind | '' = drink) {
+    if (!kind || (kind === drink && !labelOk)) return;
+    const e = drinkEntry(kind, ml, new Date().toISOString(), uuid(), kind === drink && label !== '' ? Number(label) : undefined);
     add({ type: 'intake', row: eventToRow(yard, e, 'dashboard') });
-    setFlash(`+${ml} ml ${DRINKS[drink].label.split(' (')[0]} · yard ${yard}`);
+    setFlash(`+${ml} ml ${DRINKS[kind].label.split(' (')[0]} · yard ${yard}`);
   }
   function addFood(text: string, carbsG?: number) {
     add({ type: 'intake', row: eventToRow(yard, { id: uuid(), at: new Date().toISOString(), kind: 'food', text: `Ate prepared food: ${text}`, carbsG }, 'dashboard') });
@@ -137,6 +137,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
       </select>
       {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
+      <button className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(LAP_BOTTLE_ML, 'water')}>Lap bottle · water {LAP_BOTTLE_ML} ml</button>
       <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
     </section>
 

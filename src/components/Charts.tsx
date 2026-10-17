@@ -52,12 +52,18 @@ function Defs() {
   </defs>;
 }
 
+// Every yard number is shown; the type shrinks with the column. Only when a
+// column is too narrow even for small type (a long race on the small charts)
+// does it fall back to every second yard.
 function YardAxis({ f }: { f: Frame }) {
-  const every = Math.ceil(36 / colW(f)); // keep labels ~36 units apart
+  const w = colW(f), widest = String(f.yards).length;
+  const size = Math.min(16, (w - 2) / (0.62 * widest));
+  const every = size >= 9 ? 1 : 2;
+  const fs = Math.max(size, 9);
   return <g className="axis">
     <line x1={f.l} x2={f.w - f.r} y1={f.h - f.b} y2={f.h - f.b} />
-    {Array.from({ length: f.yards }, (_, i) => i + 1).filter(y => y === 1 || y % every === 0 || every === 1).map(y =>
-      <text key={y} x={xOf(f, y)} y={f.h - f.b + 22} textAnchor="middle">{y}</text>)}
+    {Array.from({ length: f.yards }, (_, i) => i + 1).filter(y => every === 1 || y % every === 0 || y === 1).map(y =>
+      <text key={y} x={xOf(f, y)} y={f.h - f.b + 22} textAnchor="middle" style={{ fontSize: `${fs}px` }}>{y}</text>)}
   </g>;
 }
 

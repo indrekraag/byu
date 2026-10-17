@@ -50,10 +50,12 @@ export function portionOf(food: Food, factor: number): { text: string; carbsG?: 
   return { text: `${food.text} · ${Math.round(factor * 100)}%`, carbsG };
 }
 
-// Drink amounts: 100 ml steps, plus the 250 ml lap bottle she carries on the
-// loop (water or Värska) and nearly always brings back empty; log it on return.
+// Lap bottle: 250 ml of plain water on every loop; she drinks 80–90% of it,
+// so one tap logs 215 ml (≈86%) of water, whatever drink is selected.
+export const LAP_BOTTLE_ML = 215;
+// Drink amounts for the selected drink, in 100 ml steps.
 export const DRINK_AMOUNTS: { ml: number; label: string }[] = [
-  { ml: 100, label: '+100 ml' }, { ml: 250, label: 'Lap bottle 250' }, { ml: 200, label: '+200 ml' },
+  { ml: 100, label: '+100 ml' }, { ml: 200, label: '+200 ml' },
   { ml: 300, label: '+300 ml' }, { ml: 400, label: '+400 ml' }, { ml: 500, label: '+500 ml' },
 ];
 
