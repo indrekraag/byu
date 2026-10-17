@@ -106,7 +106,7 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
 }
 
 export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
-  const f = frame(720, 258 + extra, 52, modern ? 96 : 74, 16, 32, yards);
+  const f = frame(720, 206 + extra, 52, modern ? 96 : 74, 16, 32, yards); // 20% shorter than before
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -164,19 +164,24 @@ export function CarbsPerYard({ points, yards, modern = false, selected, onSelect
   </ChartFrame>;
 }
 
-export function Cumulative({ points, yards, kind, modern = false }: { points: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid'; modern?: boolean }) {
+/** Running total vs plan. `points` = finished yards (the actual line stops
+ *  there); `plan` = every yard through the current one, for the target path. */
+export function Cumulative({ points, plan = points, yards, kind, modern = false }: { points: IntakePoint[]; plan?: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid'; modern?: boolean }) {
   const f = frame(360, 186, 58, 16, 20, 32, yards);
   const val = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbs : p.cumFluid / 1000;
   const lo = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMin : p.cumFluidMin / 1000;
   const hiB = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMax : p.cumFluidMax / 1000;
-  const max = Math.max(kind === 'carbs' ? 200 : 1, ...points.map(p => Math.max(val(p), hiB(p))));
+  const max = Math.max(kind === 'carbs' ? 200 : 1, ...points.map(val), ...plan.map(hiB));
   const step = kind === 'carbs' ? (max > 1200 ? 500 : max > 500 ? 200 : 100) : (max > 12 ? 5 : max > 5 ? 2 : 1);
   const hi = Math.ceil(max / step) * step;
   const ticks: number[] = []; for (let v = 0; v <= hi; v += step) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
   const xEnd = (p: IntakePoint) => xOf(f, p.yard) + colW(f) / 2;
   const startX = f.l;
-  const band = points.length ? `M${startX},${y(0)}` + points.map(p => `L${xEnd(p)},${y(hiB(p))}`).join('') + points.slice().reverse().map(p => `L${xEnd(p)},${y(lo(p))}`).join('') + 'Z' : '';
+  const band = plan.length ? `M${startX},${y(0)}` + plan.map(p => `L${xEnd(p)},${y(hiB(p))}`).join('') + plan.slice().reverse().map(p => `L${xEnd(p)},${y(lo(p))}`).join('') + 'Z' : '';
+  // Target path: the middle of the plan band, through the current yard.
+  const target = plan.length ? `M${startX},${y(0)}` + plan.map(p => `L${xEnd(p)},${y((lo(p) + hiB(p)) / 2)}`).join('') : '';
+  const lastPlan = plan[plan.length - 1];
   const pts: [number, number][] = [[startX, y(0)], ...points.map(p => [xEnd(p), y(val(p))] as [number, number])];
   const line = points.length ? (modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('')) : '';
   const area = modern && points.length ? `${line}L${pts[pts.length - 1][0]},${y(0)}L${startX},${y(0)}Z` : '';
@@ -184,7 +189,9 @@ export function Cumulative({ points, yards, kind, modern = false }: { points: In
   return <ChartFrame f={f} base={360} label={`Cumulative ${kind} against plan`} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
-    <path className="band" d={band} />
+    <path className="band cum-band" d={band} />
+    <path className={kind === 'carbs' ? 'target carbs' : 'target fluid'} d={target} />
+    {lastPlan && <text className="target-label" x={xEnd(lastPlan) - 4} y={y((lo(lastPlan) + hiB(lastPlan)) / 2) - 8} textAnchor="end">target {kind === 'carbs' ? Math.round((lo(lastPlan) + hiB(lastPlan)) / 2) : ((lo(lastPlan) + hiB(lastPlan)) / 2).toFixed(1)}</text>}
     {area && <path className={kind === 'carbs' ? 'cum-area carbs' : 'cum-area fluid'} d={area} />}
     <path className={kind === 'carbs' ? 'cum-line carbs' : 'cum-line fluid'} d={line} />
     {last && <circle className={kind === 'carbs' ? 'cum-dot carbs' : 'cum-dot fluid'} cx={xEnd(last)} cy={y(val(last))} r={6} />}

@@ -344,3 +344,19 @@ button.link, a.link { font-size: 15px; }
 .y-pin-bg { fill: var(--surface); }
 /* Three-digit km (from yard ~15) drops under the yard number instead of overflowing. */
 .yard-line { flex-wrap: wrap; row-gap: 0; }
+
+/* Top row: bigger (the lap chart gave up 20%). Widths set so time + temperature
+   still fit on one line at iPad width. */
+.stats { grid-template-columns: 0.75fr 2.05fr 1.1fr; gap: 10px; margin-bottom: 10px; }
+.hero { font-size: min(64px, 8.3vw) !important; line-height: 1.05; }
+:root:not([data-look="default"]) .stat, [data-look="charcoal"] .stat { padding: 12px 16px 11px; }
+[data-look="charcoal"] .label, :root:not([data-look="default"]) .label { font-size: 16px; }
+.km { font-size: min(24px, 3.1vw); }
+.sub-line { font-size: min(16px, 2.1vw); margin-top: 4px; }
+
+/* Cumulative target path: dashed middle of the plan, through the current yard. */
+.cum-band { fill: rgba(255,255,255,.07) !important; }
+.target { fill: none; stroke-width: 2; stroke-dasharray: 6 6; opacity: .75; }
+.target.carbs { stroke: var(--carbs-a); }
+.target.fluid { stroke: var(--fluid); }
+svg text.target-label { fill: var(--muted); font-size: 13px; }

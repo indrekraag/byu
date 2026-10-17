@@ -69,7 +69,7 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
   const sunFirst = sun.sunrise < sun.sunset ? [['Sunrise', sun.sunrise], ['Sunset', sun.sunset]] as const : [['Sunset', sun.sunset], ['Sunrise', sun.sunrise]] as const;
   const weatherStale = weather ? now.getTime() - Date.parse(weather.at) > 45 * 60000 : true;
   const [picked, setPicked] = useState<number | null>(null);
-  // Fill the screen: give spare height to the lap (60%) and carbs (40%)
+  // Fill the screen: give spare height to the lap (30%) and carbs (70%)
   // charts instead of leaving an empty band at the bottom.
   const dashRef = useRef<HTMLDivElement>(null);
   const [fill, setFill] = useState(0); // spare height in CSS px (negative = shrink to fit)
@@ -153,18 +153,18 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
 
     <section className="panel">
       <h2>Lap time per yard <span className="unit">min · shaded = plan</span></h2>
-      <LapChart laps={laps} yards={yards} modern={modern} tags={tags} extra={Math.round(fill * 0.6 * svgScale)} />
+      <LapChart laps={laps} yards={yards} modern={modern} tags={tags} extra={Math.round(fill * 0.3 * svgScale)} />
     </section>
 
     <section className="panel">
       <h2>Carbs per yard <span className="unit">g · +? = some carbs unknown</span></h2>
-      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} extra={Math.round(fill * 0.4 * svgScale)} selected={picked} onSelect={yd => setPicked(p => p === yd ? null : yd)} /> : <p className="empty">No intake data yet. Log in below.</p>}
+      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} extra={Math.round(fill * 0.7 * svgScale)} selected={picked} onSelect={yd => setPicked(p => p === yd ? null : yd)} /> : <p className="empty">No intake data yet. Log in below.</p>}
         {picked !== null && <YardCard yard={picked} records={records} start={start} onClose={() => setPicked(null)} />}
     </section>
 
     {hasIntake && <section className="pair">
-      <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={closed} yards={yards} kind="carbs" modern={modern} /></div>
-      <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(2)} L</span></h2><Cumulative points={closed} yards={yards} kind="fluid" modern={modern} /></div>
+      <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="carbs" modern={modern} /></div>
+      <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(2)} L</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="fluid" modern={modern} /></div>
     </section>}
 
     <footer className="status">
