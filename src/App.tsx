@@ -64,7 +64,10 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
   const weather = useWeather();
-  const sun = nextSunEvents(now, KEILA.lat, KEILA.lng);
+  // Published times (Open-Meteo) when we have them; on-device calculation otherwise.
+  const calc = nextSunEvents(now, KEILA.lat, KEILA.lng);
+  const nextOf = (list?: string[]) => list?.map(v => new Date(v)).find(d => d > now);
+  const sun = { sunrise: nextOf(weather?.sunrise) ?? calc.sunrise, sunset: nextOf(weather?.sunset) ?? calc.sunset };
   const sunFirst = sun.sunrise < sun.sunset ? [['Sunrise', sun.sunrise], ['Sunset', sun.sunset]] as const : [['Sunset', sun.sunset], ['Sunrise', sun.sunrise]] as const;
   const weatherStale = weather ? now.getTime() - Date.parse(weather.at) > 45 * 60000 : true;
   const [picked, setPicked] = useState<number | null>(null);
