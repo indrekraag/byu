@@ -17,7 +17,10 @@ export function dedupe(ops: Op[]): Op[] {
 
 // Every request gives up after 15 s, so one hung request (Wi-Fi blip) can never
 // freeze syncing until the page is reloaded.
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 8_000;
+// Last good copy of the log, so a reload shows data at once while it syncs.
+const CACHE_KEY = 'byu-dash:race-log-cache:v1';
+const readCache = (): { intake: IntakeRow[]; returns: ReturnRow[]; at: string } | null => { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } };
 const timeout = () => { const c = new AbortController(); setTimeout(() => c.abort(), TIMEOUT_MS); return c.signal; };
 
 async function send(op: Op) {
@@ -36,13 +39,14 @@ async function send(op: Op) {
 export function useRaceLog() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
-  const [intake, setIntake] = useState<IntakeRow[]>([]);
-  const [returns, setReturns] = useState<ReturnRow[]>([]);
+  const [intake, setIntake] = useState<IntakeRow[]>(() => readCache()?.intake ?? []);
+  const [returns, setReturns] = useState<ReturnRow[]>(() => readCache()?.returns ?? []);
   const [outbox, setOutbox] = useState<Op[]>(readOutbox);
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [error, setError] = useState('');
   const flushing = useRef(false);
   const flushStarted = useRef(0);
+  const retrySoon = useRef(false);
   const [liveLink, setLiveLink] = useState(false);
 
   useEffect(() => {
@@ -56,8 +60,14 @@ export function useRaceLog() {
       supabase.from('intake_events').select('id,yard,at,kind,drink_kind,ml,carbs_g,text,source,deleted_at').order('at').abortSignal(timeout()),
       supabase.from('yard_returns').select('yard,finish,lap_ms,source').order('yard').abortSignal(timeout()),
     ]);
-    if (a.error || b.error) { setError('Could not reach the race log. Showing the last copy; retrying.'); return; }
+    if (a.error || b.error) {
+      setError('Could not reach the race log. Showing the last copy; retrying.');
+      // A first request after page load sometimes stalls; retry soon, once.
+      if (!retrySoon.current) { retrySoon.current = true; setTimeout(() => { retrySoon.current = false; void load(); }, 2000); }
+      return;
+    }
     setIntake(a.data as IntakeRow[]); setReturns(b.data as ReturnRow[]); setLoadedAt(new Date()); setError('');
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ intake: a.data, returns: b.data, at: new Date().toISOString() })); } catch { /* memory only */ }
   }, []);
 
   const flush = useCallback(async () => {
