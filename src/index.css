@@ -118,7 +118,8 @@ body { overflow: hidden; overscroll-behavior: none; }
    covers the top. Keep it opaque and full width. */
 :root { --top-cap: calc(env(safe-area-inset-top, 0px) + 14px); }
 /* Content starts below iOS's top blur zone (~40 pt), whatever the status bar does. */
-.page { padding-top: max(calc(var(--top-cap) + 4px), 44px); }
+:root { --page-pad: max(calc(var(--top-cap) + 4px), 44px); }
+.page { padding-top: var(--page-pad); }
 .top-cap { position: fixed; top: 0; left: 0; right: 0; height: var(--top-cap); background: var(--page); z-index: 10; }
 .top-cap::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; background: linear-gradient(var(--page), rgba(16, 17, 18, 0)); }
 button.import { background: none; font: inherit; color: var(--text); font-weight: 600; cursor: pointer; }
@@ -233,6 +234,6 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 
 /* Log page: yard + next start stay pinned while scrolling. The block reaches
    up under the top padding so it also covers the blur zone. */
-.log-sticky { position: -webkit-sticky; position: sticky; top: 0; z-index: 4; background: var(--page); margin: -44px -16px 10px; padding: 44px 16px 8px; box-shadow: 0 10px 14px -12px rgba(0,0,0,.8); }
+.log-sticky { position: -webkit-sticky; position: sticky; top: calc(-1 * var(--page-pad)); z-index: 4; background: var(--page); margin: calc(-1 * var(--page-pad)) -16px 10px; padding: var(--page-pad) 16px 8px; box-shadow: 0 10px 14px -12px rgba(0,0,0,.8); }
 .log-sticky .sync { margin: 6px 0 0; }
 .log-sticky .flash { margin: 8px 0 0; }

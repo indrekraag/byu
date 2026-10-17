@@ -1,7 +1,9 @@
 import type { IntakeEvent, YardRecord } from './raceHQ';
-export type DrinkKind = 'water' | '160' | '320' | 'arctic-greip' | 'arctic-apple' | 'oshee' | 'cido' | 'other';
+export type DrinkKind = 'water' | 'varska' | '160' | '320' | 'arctic-greip' | 'arctic-apple' | 'oshee' | 'cido' | 'other';
 export const DRINKS: Record<DrinkKind, { label: string; carbsPer500?: number }> = {
   water: { label: 'Plain water', carbsPer500: 0 },
+  // Värska Originaal: natural mineral water, no sugar.
+  varska: { label: 'Värska mineral water', carbsPer500: 0 },
   '160': { label: 'Drink Mix 160 (1 sachet / 500 ml)', carbsPer500: 40 },
   '320': { label: 'Drink Mix 320 (1 sachet / 500 ml)', carbsPer500: 80 },
   'arctic-greip': { label: 'Arctic Sport Greip (regular; check label)', carbsPer500: 33.5 },
