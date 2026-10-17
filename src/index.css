@@ -20,7 +20,7 @@ html, body { margin: 0; background: var(--page); color: var(--text); }
 body { font-family: -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif; -webkit-text-size-adjust: 100%; font-variant-numeric: tabular-nums; }
 .dash { max-width: 1024px; margin: 0 auto; padding: 0 16px max(12px, env(safe-area-inset-bottom)); }
 
-.stats { display: grid; grid-template-columns: 0.7fr 1.6fr 1.1fr; gap: 10px; margin-bottom: 10px; }
+.stats { display: grid; grid-template-columns: 1.05fr 1.5fr 1.05fr; gap: 10px; margin-bottom: 10px; }
 .stat { background: var(--surface); border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; min-width: 0; }
 .label { font-size: 18px; color: var(--text-2); }
 .hero { font-size: min(62px, 7.6vw); line-height: 1.05; font-weight: 700; letter-spacing: -1px; }
@@ -228,3 +228,5 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .status .import:first-of-type { margin-left: auto; }
 .status .login.compact input { padding: 8px 10px; font-size: 16px; }
 .status .login.compact button { padding: 8px 14px; font-size: 16px; }
+.yard-line { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.km { font-size: min(24px, 3.1vw); font-weight: 600; color: var(--text-2); }

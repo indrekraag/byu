@@ -93,6 +93,9 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const laps = useMemo(() => lapSeries(snapshot?.finishes ?? [], records, start, new Date(minute * 60000 + 59999)), [snapshot, records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const totals = intake[intake.length - 1];
+  // Distance covered: completed loops, counting the current one once she is back.
+  const loopsDone = clock.lapNumber - 1 + (laps.some(l => l.yard === clock.lapNumber) ? 1 : 0);
+  const km = Math.max(0, loopsDone) * RACE.lapDistanceKm;
   const lastEntry = Object.values(records).flatMap(r => r.intake ?? []).map(e => e.at).sort().pop();
   // Keep a permanent copy of each official lap in the crew log.
   useEffect(() => {
@@ -113,7 +116,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
 
   return <div className="dash" ref={dashRef}>
     <header className="stats">
-      <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong></div>
+      <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
