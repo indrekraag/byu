@@ -5,8 +5,7 @@ import { emptyYard, yardStart, validFinish, type YardRecord } from './raceHQ';
 export const OFFICIAL_RESULTS_URL = 'https://my.raceresult.com/428094/details?pid=15';
 const EVENT_URL = 'https://my.raceresult.com/428094';
 export type OfficialFinish = { yard: number; at: string; lapMs: number };
-export type FieldStatus = { total: number; stillIn: number; latestYard: number };
-export type OfficialSnapshot = { checkedAt: string; finishes: OfficialFinish[]; unrecognized: number; field?: FieldStatus };
+export type OfficialSnapshot = { checkedAt: string; finishes: OfficialFinish[]; unrecognized: number };
 export function applyOfficialFinish(records: Record<string, YardRecord>, finish: OfficialFinish, now: Date) {
   if (records[finish.yard]?.finish || !Number.isFinite(finish.lapMs) || finish.lapMs <= 0 || finish.lapMs >= RACE.lapWindowMin * 60000 || !validFinish(raceStartUtc(), finish.yard, new Date(finish.at), now) || Date.parse(finish.at) - yardStart(raceStartUtc(), finish.yard).getTime() !== finish.lapMs) return records;
   return { ...records, [finish.yard]: { ...(records[finish.yard] || emptyYard()), finish: finish.at, finishSource: 'official-lap' as const, officialLapMs: finish.lapMs } };
@@ -59,18 +58,6 @@ export function parseOfficialLaps(table: Table, now: Date): Pick<OfficialSnapsho
   return { finishes: finishes.sort((a, b) => a.yard - b.yard), unrecognized };
 }
 
-/** Backyard field: everyone who completed the latest finished yard is still in. */
-export function fieldStatus(table: Table): FieldStatus | undefined {
-  if (!Array.isArray(table.DataFields)) return undefined;
-  const fields = table.DataFields as string[];
-  const lapIdx = fields.map((f, i) => /^Lap[1-9]\d*$/.test(f) ? i : -1).filter(i => i >= 0);
-  const all = rows(table.data, fields.length);
-  if (!all.length || !lapIdx.length) return undefined;
-  const done = all.map(row => lapIdx.filter(i => row[i] !== '' && row[i] !== null && row[i] !== undefined).length);
-  const latestYard = Math.max(...done);
-  return { total: all.length, stillIn: done.filter(n => n === latestYard).length, latestYard };
-}
-
 export async function fetchOfficialResults(signal: AbortSignal): Promise<OfficialSnapshot> {
   async function read(url: string) {
     const response = await fetch(url, { signal, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' });
@@ -82,10 +69,9 @@ export async function fetchOfficialResults(signal: AbortSignal): Promise<Officia
   const host = typeof config.server === 'string' ? config.server : 'my.raceresult.com';
   if (!/^my\d*\.raceresult\.com$/.test(host)) throw new Error('Timing server changed. Use the official results link.');
   const endpoint = `https://${host}/428094/results/list?`;
-  // The whole field (small: one row per runner) gives her laps and who is still in.
-  const params = (name: string) => new URLSearchParams({ key: config.key, listname: name, page: 'results', contest: '0', r: 'all', l: '0', lang: 'en' });
+  const params = (name: string) => new URLSearchParams({ key: config.key, listname: name, page: 'results', contest: '0', r: 'search', l: '0', openedGroups: '{}', term: '15' });
   const overview = await read(endpoint + params('Result Lists|FINISH'));
   if (!runnerRow(overview).row) throw new Error('Laura Komp · bib 15 was not found. Manual logging still works.');
   const now = new Date();
-  return { checkedAt: now.toISOString(), ...parseOfficialLaps(overview, now), field: fieldStatus(overview) };
+  return { checkedAt: now.toISOString(), ...parseOfficialLaps(overview, now) };
 }

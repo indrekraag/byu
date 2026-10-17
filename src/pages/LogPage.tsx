@@ -128,10 +128,6 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       {flash && <p className="flash" role="status">{flash}</p>}
     </div>
 
-    <section className="card">
-      <h2>Return</h2>
-      <div className="row"><button className="big-btn" disabled={!started} onClick={backNow}>{returned ? `Back: ${hhmm(returned)} · update` : 'She is back now'}</button></div>
-    </section>
 
     <section className="card">
       <h2>Drink</h2>
@@ -190,6 +186,8 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
       <button className="link" onClick={exportJson}>Export race log</button>
+      {/* Returns come in automatically from the official timing; this is the fallback. */}
+      <button className="link" disabled={!started} onClick={backNow}>{returned ? `Return ${hhmm(returned)} · set to now` : 'Log return now'}</button>
       <button className="link" onClick={onDashboard}>← Dashboard</button>
       <button className="link" onClick={refresh}>Refresh</button>
       <button className="link" onClick={hardRefresh}>Hard refresh</button>

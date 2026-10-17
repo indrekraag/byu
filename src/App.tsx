@@ -65,19 +65,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   // charts instead of leaving an empty band at the bottom.
   const dashRef = useRef<HTMLDivElement>(null);
   const [fill, setFill] = useState(0); // spare height in CSS px (negative = shrink to fit)
-  useLayoutEffect(() => {
-    const dash = dashRef.current, page = dash?.parentElement;
-    if (!dash || !page) return;
-    const measure = () => {
-      const style = getComputedStyle(page);
-      const room = page.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-      setFill(f => Math.max(-90, Math.min(600, Math.round(f + room - dash.offsetHeight - 2))));
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  });
-  const svgScale = 720 / Math.max(300, (dashRef.current?.clientWidth ?? 720) - 56); // CSS px → chart units
+  const svgScale = 720 / Math.max(300, Math.min(1024, window.innerWidth) - 60); // CSS px → chart units (stable width)
   useEffect(() => { if (picked === null) return; const id = setTimeout(() => setPicked(null), 12000); return () => clearTimeout(id); }, [picked]);
   const modern = true;
   const live = !!log.session;
@@ -95,6 +83,26 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const minute = Math.floor(now.getTime() / 60000);
   const laps = useMemo(() => lapSeries(snapshot?.finishes ?? [], records, start, new Date(minute * 60000 + 59999)), [snapshot, records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Measured only when the screen size or the data changes, never on every
+  // clock tick, and ignoring changes under 4 px: a page scrollbar appearing
+  // must not feed back into the chart size (that loop crashed the page).
+  const fillKey = `${laps.length}|${intake.length}|${hasIntake}|${live}|${Object.keys(records).length}|${yards}`;
+  useLayoutEffect(() => {
+    const dash = dashRef.current, page = dash?.parentElement;
+    if (!dash || !page) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const style = getComputedStyle(page);
+        const room = page.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+        setFill(f => { const next = Math.max(-90, Math.min(600, Math.round(f + room - dash.offsetHeight - 2))); return Math.abs(next - f) < 4 ? f : next; });
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', measure); };
+  }, [fillKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const totals = intake[intake.length - 1];
   // Distance covered: completed loops, counting the current one once she is back.
   const since = sinceLast(records, start, now);
@@ -131,7 +139,6 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
       <span className={since.carbsMin !== null && since.carbsMin > 60 ? 'chip late' : 'chip'}><b>Carbs</b> {ago(since.carbsMin)}</span>
       <span className={since.drinkMin !== null && since.drinkMin > 60 ? 'chip late' : 'chip'}><b>Drink</b> {ago(since.drinkMin)}</span>
       <span className={caf.state === 'due' ? 'chip late' : caf.state === 'ok' ? 'chip ok' : 'chip'}><b>Caffeine</b> {caf.state === 'before' ? 'from 22:00' : caf.state === 'wait' ? `next ${clockTime(caf.nextFrom.toISOString())}` : caf.state === 'ok' ? `ok now${caf.nextBy ? ` · by ${clockTime(caf.nextBy.toISOString())}` : ''}` : 'due'}{caf.total ? ` · ${caf.total} mg` : ''}</span>
-      {snapshot?.field && <span className="chip"><b>Field</b> {snapshot.field.stillIn} of {snapshot.field.total} in</span>}
     </div>}
 
     <section className="panel">

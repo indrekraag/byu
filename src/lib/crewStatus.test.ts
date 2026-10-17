@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { caffeineOf, portionOf, FOODS } from '../data/foods';
 import { caffeineStatus, sinceLast } from './crewStatus';
-import { fieldStatus } from './officialResults';
 import { toRecords, type IntakeRow } from './raceLog';
 import { raceStartUtc } from './raceClock';
 
@@ -43,12 +42,5 @@ describe('since last / caffeine', () => {
     expect(at('2026-10-17T20:30:00Z').state).toBe('ok');
     expect(at('2026-10-17T21:30:00Z').state).toBe('due');
     expect(at('2026-10-17T21:30:00Z').total).toBe(100);
-  });
-});
-
-describe('fieldStatus', () => {
-  it('counts runners who completed the latest yard', () => {
-    const table = { DataFields: ['BIB', 'Lap1', 'Lap2'], data: [['1', '48:00', '49:00'], ['2', '47:00', '50:00'], ['3', '55:00', '']] };
-    expect(fieldStatus(table)).toEqual({ total: 3, stillIn: 2, latestYard: 2 });
   });
 });

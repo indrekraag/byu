@@ -258,3 +258,46 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .row.four .big-btn { font-size: 15px; padding: 12px 4px; }
 .strip { flex-wrap: nowrap; overflow: hidden; }
 .chip { font-size: min(16px, 2.1vw); padding: 6px 12px; white-space: nowrap; }
+
+/* ===== Density pass (2026-10-17): everything ~15% smaller, evenly, and
+   clear of iOS's top blur and the page dots at the bottom. ===== */
+:root { --page-pad: max(calc(var(--top-cap) + 6px), 58px); }
+.page { padding-top: var(--page-pad); padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)); }
+.dash, .log { padding-bottom: 0; }
+.stats { gap: 8px; margin-bottom: 8px; }
+:root:not([data-look="default"]) .stat { padding: 8px 14px 7px; }
+[data-look="charcoal"] .stat { padding: 8px 14px 7px; }
+[data-look="charcoal"] .label, :root:not([data-look="default"]) .label { font-size: 14px; }
+.hero { font-size: min(52px, 6.6vw) !important; }
+.km { font-size: min(20px, 2.6vw); }
+:root:not([data-look="default"]) .stat, :root:not([data-look="default"]) .panel, :root:not([data-look="default"]) .card { border-radius: 18px; }
+:root:not([data-look="default"]) .panel { padding: 10px 14px 4px; margin-bottom: 8px; }
+[data-look="charcoal"] .panel h2 { font-size: 17px; }
+.unit { font-size: 13px !important; }
+.total { font-size: 21px; }
+.pair { gap: 8px; }
+.pair .panel { margin-bottom: 8px; }
+.strip { gap: 6px; margin-bottom: 8px; }
+.chip { font-size: min(14px, 1.9vw); padding: 5px 11px; }
+.status { font-size: 13px; }
+.status .import, .status button.import { padding: 5px 11px; font-size: 13px; }
+/* Log page */
+.log-head .label { font-size: 13px; }
+.yard-pick strong { font-size: 42px; }
+.yard-pick button { width: 44px; height: 44px; font-size: 24px; }
+.log-clock strong { font-size: 32px; }
+.progress { font-size: 14px; }
+.sync { font-size: 13px; }
+.card { padding: 10px; gap: 8px; margin-bottom: 10px; }
+.card h2 { font-size: 17px; }
+.big-btn, .login button { font-size: 17px; padding: 11px 12px; }
+.big-btn small { font-size: 12px; }
+.row.four .big-btn { font-size: 14px; padding: 10px 4px; }
+.entry { font-size: 15px; }
+.flash { font-size: 15px; padding: 9px 11px; }
+.portion-title { font-size: 14px; }
+.step-value { font-size: 19px; }
+input, select { font-size: 16px; padding: 10px 11px; }
+button.link, a.link { font-size: 15px; }
+.yard-card-head { font-size: 17px; }
+.yard-card li { font-size: 15px; }
