@@ -502,3 +502,8 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stats.quiet .time-line { align-items: center; height: min(60px, 7.8vw); }
 .stats.quiet .yard-line { flex-direction: column; align-items: center; }
 .stats.quiet .stat + .stat { border-left: 1px solid rgba(255,255,255,.14) !important; border-radius: 0 !important; }
+.stats.quiet { grid-template-columns: 0.62fr 2.3fr 1.08fr; }
+.stats.quiet .stat { min-height: 0; padding-bottom: 6px; }
+.stats.quiet .hero { font-size: min(58px, 7.5vw) !important; }
+.stats.quiet .time-line { height: min(58px, 7.5vw); }
+.stats.quiet .stat + .stat { border-left-color: rgba(255,255,255,.24) !important; }
