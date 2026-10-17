@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Login } from '../components/Login';
 import type { RaceLog } from '../App';
+import { LOOKS, type Look } from '../lib/look';
 import { DRINKS, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
 import { computeLapClock, formatClock, raceStartUtc } from '../lib/raceClock';
 import { eventToRow, rowsFromHQ, type Op } from '../lib/raceLog';
@@ -23,7 +24,7 @@ const LAST_DRINK_KEY = 'byu-dash:last-drink';
 const uuid = () => crypto.randomUUID();
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Europe/Tallinn', hour: '2-digit', minute: '2-digit' });
 
-export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () => void }) {
+export function LogPage({ log, look, onLook, onDashboard }: { log: RaceLog; look: Look; onLook: (l: Look) => void; onDashboard: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const start = raceStartUtc();
@@ -39,8 +40,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const [flash, setFlash] = useState('');
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
 
+  const lookSwitch = <section className="card looks"><h2>Design option</h2><div className="row three">{LOOKS.map(l => <button key={l.id} className="big-btn secondary" aria-pressed={look === l.id} onClick={() => onLook(l.id)}>{l.label}</button>)}</div></section>;
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
-  if (!log.session) return <div className="log"><Login /></div>;
+  if (!log.session) return <div className="log"><Login />{lookSwitch}</div>;
 
   const counted = raceIntakeRecords(log.records, start, new Date(now.getTime() + 60000));
   const record = counted[yard];
@@ -128,6 +130,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       </div>)}
     </section>
 
+    {lookSwitch}
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
       <button className="link" onClick={exportJson}>Export race log</button>

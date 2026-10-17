@@ -8,18 +8,29 @@ import { RACE } from './data/raceConfig';
 import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
 import { LogPage } from './pages/LogPage';
+import { Segments } from './components/Segments';
+import { DotMatrix } from './components/DotMatrix';
+import { planBand } from './lib/dashData';
+import { applyLook, initialLook, type Look } from './lib/look';
 
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
 
 const timeWithSeconds = (d: Date) => d.toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 export type RaceLog = ReturnType<typeof useRaceLog>;
+// Round a running total up to a clean axis top.
+const cumHi = (values: number[], unit: number) => { const m = Math.max(unit, ...values); const stepv = m > 10 * unit ? 5 * unit : m > 4 * unit ? 2 * unit : unit; return Math.ceil(m / stepv) * stepv; };
+function Figure({ look, text }: { look: Look; text: string }) {
+  return look === 'board' ? <Segments className="hero-seg" text={text} /> : <strong className="hero">{text}</strong>;
+}
 
 // Two full-screen pages side by side: swipe left for logging, right for the
 // charts. Native scroll-snap, so the swipe feels like any iOS pager. One sync
 // connection is shared so both pages never send the same outbox twice.
 function App() {
   const log = useRaceLog();
+  const [look, setLook] = useState<Look>(initialLook);
+  useEffect(() => applyLook(look), [look]);
   const pager = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(() => location.hash === '#log' ? 1 : 0);
   const goTo = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
@@ -41,14 +52,14 @@ function App() {
   return <>
     <div className="top-cap" aria-hidden="true" />
     <div className="pager" ref={pager}>
-      <section className="page" aria-label="Dashboard"><Dashboard log={log} onLog={() => goTo(1)} /></section>
-      <section className="page" aria-label="Log food and drink"><LogPage log={log} onDashboard={() => goTo(0)} /></section>
+      <section className="page" aria-label="Dashboard"><Dashboard log={log} look={look} onLog={() => goTo(1)} /></section>
+      <section className="page" aria-label="Log food and drink"><LogPage log={log} look={look} onLook={setLook} onDashboard={() => goTo(0)} /></section>
     </div>
     <nav className="dots" aria-label="Pages">{['Dashboard', 'Log'].map((label, i) => <button key={label} aria-label={label} aria-current={page === i} onClick={() => goTo(i)} />)}</nav>
   </>;
 }
 
-function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
+function Dashboard({ log, look, onLog }: { log: RaceLog; look: Look; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
@@ -88,25 +99,40 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
 
   return <div className="dash">
     <header className="stats">
-      <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong></div>
-      <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
-      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className="hero">{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
+      <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><Figure look={look} text={started ? String(clock.lapNumber) : clockTime(start.toISOString())} /></div>
+      <div className="stat"><span className="label">Time</span><Figure look={look} text={timeWithSeconds(now)} /></div>
+      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><Figure look={look} text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></div>
     </header>
 
-    <section className="panel">
-      <h2>Lap time per yard <span className="unit">min · shaded = plan</span></h2>
-      <LapChart laps={laps} yards={yards} />
-    </section>
+    {look === 'board' ? <>
+      <section className="panel">
+        <h2>Lap · min</h2>
+        <DotMatrix label="Lap time per yard against the plan band" points={[...laps.map(p => ({ yard: p.yard, value: p.lapMs / 60000 })), { yard: clock.lapNumber, value: null, current: true }]} yards={yards} lo={40} hi={60} rows={20} band={yd => { const b = planBand(yd); return [b.minMin ?? 40, b.maxMin]; }} hotAbove={yd => planBand(yd).maxMin} ticks={[40, 45, 50, 55, 60]} fmt={v => String(v)} last={laps.length ? formatClock(laps[laps.length - 1].lapMs) : undefined} />
+      </section>
+      <section className="panel">
+        <h2>Carbs · g per yard</h2>
+        {hasIntake ? <DotMatrix label="Carbs per yard against the 50 to 60 gram plan" h={190} points={intake.map(p => ({ yard: p.yard, value: p.hasEntries || p.current ? p.carbs : null, current: p.current, unknown: p.incomplete }))} yards={yards} lo={0} hi={100} rows={20} band={() => [50, 60]} ticks={[0, 25, 50, 75, 100]} fmt={v => String(v)} last={(() => { const done = [...intake].reverse().find(p => !p.current && p.hasEntries); return done ? `${n(done.carbs)} g` : undefined; })()} /> : <p className="empty">No intake yet. Log in below.</p>}
+      </section>
+      {hasIntake && <section className="pair">
+        <div className="panel"><h2>Carbs total <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><DotMatrix label="Cumulative carbs against plan" w={360} h={186} points={intake.map(p => ({ yard: p.yard, value: p.cumCarbs, current: p.current }))} yards={yards} lo={0} hi={cumHi(intake.map(p => Math.max(p.cumCarbs, p.cumCarbMax)), 100)} rows={16} band={yd => { const p = intake.find(q => q.yard === yd); return p ? [p.cumCarbMin, p.cumCarbMax] : null; }} ticks={[0, cumHi(intake.map(p => Math.max(p.cumCarbs, p.cumCarbMax)), 100)]} fmt={v => String(v)} /></div>
+        <div className="panel"><h2>Fluid total <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(1)} L</span></h2><DotMatrix label="Cumulative fluid against plan" w={360} h={186} points={intake.map(p => ({ yard: p.yard, value: p.cumFluid / 1000, current: p.current }))} yards={yards} lo={0} hi={cumHi(intake.map(p => Math.max(p.cumFluid, p.cumFluidMax) / 1000), 1)} rows={16} band={yd => { const p = intake.find(q => q.yard === yd); return p ? [p.cumFluidMin / 1000, p.cumFluidMax / 1000] : null; }} ticks={[0, cumHi(intake.map(p => Math.max(p.cumFluid, p.cumFluidMax) / 1000), 1)]} fmt={v => `${v} L`} /></div>
+      </section>}
+    </> : <>
+      <section className="panel">
+        <h2>Lap time per yard <span className="unit">min · shaded = plan</span></h2>
+        <LapChart laps={laps} yards={yards} />
+      </section>
 
-    <section className="panel">
-      <h2>Carbs per yard <span className="unit">g · ? = unknown carbs logged</span></h2>
-      {hasIntake ? <CarbsPerYard points={intake} yards={yards} /> : <p className="empty">No intake data yet. Log in below.</p>}
-    </section>
+      <section className="panel">
+        <h2>Carbs per yard <span className="unit">g · ? = unknown carbs logged</span></h2>
+        {hasIntake ? <CarbsPerYard points={intake} yards={yards} /> : <p className="empty">No intake data yet. Log in below.</p>}
+      </section>
 
-    {hasIntake && <section className="pair">
-      <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={intake} yards={yards} kind="carbs" /></div>
-      <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(1)} L</span></h2><Cumulative points={intake} yards={yards} kind="fluid" /></div>
-    </section>}
+      {hasIntake && <section className="pair">
+        <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={intake} yards={yards} kind="carbs" /></div>
+        <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(1)} L</span></h2><Cumulative points={intake} yards={yards} kind="fluid" /></div>
+      </section>}
+    </>}
 
     <footer className="status">
       <span className={error || stale ? 'warn' : undefined}>Laps: {snapshot ? `official feed ${clockTime(snapshot.checkedAt)}` : 'waiting for feed'}{error ? ` · ${error}` : ''}</span>

@@ -39,7 +39,7 @@ export function LapChart({ laps, yards }: { laps: LapPoint[]; yards: number }) {
   const y = (min: number) => yOf(f, min, lo, hi);
   const last = laps[laps.length - 1];
   const path = laps.map((p, i) => `${i ? 'L' : 'M'}${xOf(f, p.yard)},${y(p.lapMs / 60000)}`).join('');
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Lap time per yard against plan band">
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Lap time per yard against plan band"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
     <Grid f={f} ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`} />
     {Array.from({ length: yards }, (_, i) => i + 1).map(yard => { const b = planBand(yard); const top = y(b.maxMin), bottom = b.minMin === null ? f.h - f.b : y(b.minMin);
       return <rect key={yard} className="band" x={xOf(f, yard) - colW(f) / 2} width={colW(f)} y={top} height={bottom - top} />; })}
@@ -59,7 +59,7 @@ export function CarbsPerYard({ points, yards }: { points: IntakePoint[]; yards: 
   const y = (v: number) => yOf(f, v, 0, hi);
   const bw = Math.max(4, colW(f) - 6);
   const band = points[0] ?? { carbMin: 50, carbMax: 60 };
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target">
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} />
     <text className="band-label" x={f.w - f.r + 6} y={y((band.carbMin + band.carbMax) / 2) + 6}>{band.carbMin}–{band.carbMax}</text>
@@ -88,7 +88,7 @@ export function Cumulative({ points, yards, kind }: { points: IntakePoint[]; yar
   const band = points.length ? `M${startX},${y(0)}` + points.map(p => `L${xEnd(p)},${y(hiB(p))}`).join('') + points.slice().reverse().map(p => `L${xEnd(p)},${y(lo(p))}`).join('') + 'Z' : '';
   const line = points.length ? `M${startX},${y(0)}` + points.map(p => `L${xEnd(p)},${y(val(p))}`).join('') : '';
   const last = points[points.length - 1];
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`Cumulative ${kind} against plan`}>
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`Cumulative ${kind} against plan`}><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => kind === 'carbs' ? `${v}` : `${v}`} />
     <path className="band" d={band} />
     <path className={kind === 'carbs' ? 'cum-line carbs' : 'cum-line fluid'} d={line} />
