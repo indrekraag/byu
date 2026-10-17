@@ -72,7 +72,7 @@ function smoothPath(pts: [number, number][]) {
 /** Speech-bubble badge centred over its point, pointer down to it; flips
  *  below the point when there is no room above. */
 function Callout({ x, y, text, minX, maxX, top }: { x: number; y: number; text: string; minX: number; maxX: number; top: number }) {
-  const w = text.length * 12 + 22, h = 30, gap = 10, tip = 7;
+  const w = text.length * 12 + 22, h = 30, gap = 16, tip = 7;
   const above = y - gap - tip - h >= top - 6;
   const bx = Math.max(minX, Math.min(maxX - w, x - w / 2));
   const by = above ? y - gap - tip - h : y + gap + tip;
