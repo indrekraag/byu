@@ -648,3 +648,18 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .fc-now { width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,.7); }
 .fc-scale { position: relative; display: flex; justify-content: space-between; margin-top: 8px; font-size: 17px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .fc-win-label { position: absolute; transform: translateX(-50%); color: var(--ok); font-weight: 600; white-space: nowrap; }
+
+/* Log page top card, in the dashboard hero card's style. */
+.log-sticky { padding-bottom: 10px; }
+.log-hero { border-radius: 22px; padding: 12px 16px 10px; background: linear-gradient(180deg, #24252b 0%, #1d1e23 100%); border: 1px solid rgba(255,255,255,.07); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 32px rgba(0,0,0,.35); }
+.log-hero .label { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.log-hero .yard-pick strong { font-size: 48px; font-weight: 700; line-height: 1.05; }
+.log-hero .yard-pick button { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.1); }
+.log-hero .log-clock { text-align: right; }
+.log-hero .log-clock strong { font-size: 48px; font-weight: 700; line-height: 1.05; }
+.log-hero .log-clock strong.calm { color: var(--ok); }
+.log-hero .log-clock strong.countdown.soon { color: #ff9d2e; text-shadow: 0 0 24px rgba(255, 157, 46, .30); }
+.log-hero .log-clock strong.countdown.final { color: #ff4d3d; text-shadow: 0 0 28px rgba(255, 77, 61, .45); }
+.log-hero .progress { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.06); }
+.log-hero .meter-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.log-hero .sync { margin: 8px 0 0; font-size: 12px; }

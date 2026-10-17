@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import { readJournal, readSnapshots, toCsv } from '../lib/backup';
 import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
+import { Digits } from '../components/Digits';
 import type { IntakeEvent } from '../lib/raceHQ';
 import { EVENT_PREFIX, NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
 import { targetsForYard } from '../lib/yardTargets';
@@ -186,19 +187,21 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
   return <div className="log">
     {/* Stays on top while scrolling: which yard you are logging to, and the clock. */}
     <div className="log-sticky">
-      <header className="log-head">
-        <div className="yard-pick">
-          <button aria-label="Previous yard" onClick={() => setYardOffset(o => Math.max(1 - clock.lapNumber, o - 1))}>−</button>
-          <div><span className="label">{yardOffset ? 'Logging to yard' : 'Yard'}</span><strong>{yard}</strong></div>
-          <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
+      <div className="log-hero">
+        <header className="log-head">
+          <div className="yard-pick">
+            <button aria-label="Previous yard" onClick={() => setYardOffset(o => Math.max(1 - clock.lapNumber, o - 1))}>−</button>
+            <div><span className="label">{yardOffset ? 'Logging to' : 'Yard'}</span><strong>{yard}</strong></div>
+            <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
+          </div>
+          <div className="log-clock"><span className="label">Next start</span><strong className={started ? `${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : undefined}>{started ? <Digits text={formatClock(clock.msToNextLap)} /> : '—'}</strong></div>
+        </header>
+        <div className="progress">
+          <div className="meter"><span className="meter-label">Carbs</span><span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span><span className="meter-value"><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> / {target.carbMin}–{target.carbMax}</span></div>
+          <div className="meter"><span className="meter-label">Fluid</span><span className="bar"><span className={totals.fluid >= target.fluidMin ? 'fill fluid ok' : 'fill fluid'} style={{ width: `${Math.min(100, totals.fluid / target.fluidMax * 100)}%` }} /></span><span className="meter-value"><b>{totals.fluid} ml</b> / {target.fluidMin}–{target.fluidMax}</span></div>
         </div>
-        <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
-      </header>
-      <div className="progress">
-        <div className="meter"><span className="meter-label">Carbs</span><span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span><span className="meter-value"><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> / {target.carbMin}–{target.carbMax}</span></div>
-        <div className="meter"><span className="meter-label">Fluid</span><span className="bar"><span className={totals.fluid >= target.fluidMin ? 'fill fluid ok' : 'fill fluid'} style={{ width: `${Math.min(100, totals.fluid / target.fluidMax * 100)}%` }} /></span><span className="meter-value"><b>{totals.fluid} ml</b> / {target.fluidMin}–{target.fluidMax}</span></div>
+        <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
       </div>
-      <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
       {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
       {flash && <p className="flash" role="status"><span>{flash}</span>{undoId && <button className="flash-undo" onClick={() => { add({ type: 'undo', id: undoId, at: new Date().toISOString() }); setUndoId(null); setFlash('Undone.'); }}>Undo</button>}</p>}
     </div>

@@ -10,6 +10,7 @@ import { Login } from './components/Login';
 import { StatusFooter } from './components/StatusFooter';
 import { LogPage } from './pages/LogPage';
 import { Moments } from './components/Moments';
+import { Digits } from './components/Digits';
 import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
 import { RESTORE_KEY } from './lib/autoUpdate';
@@ -258,12 +259,6 @@ function SunIcon({ rise }: { rise: boolean }) {
     <path d="M2 20h20M4.5 12.5l1.4 1.4M19.5 12.5l-1.4 1.4M12 7.5v1" />
     <path d={rise ? 'M12 1.5v5M9.5 4 12 1.5 14.5 4' : 'M12 1.5v5M9.5 4 12 6.5 14.5 4'} />
   </svg>;
-}
-
-/** Fixed-width digits: Poppins has no tabular figures, so each digit gets its
- *  own equal slot and a ticking clock never shifts what is next to it. */
-function Digits({ text }: { text: string }) {
-  return <>{[...text].map((c, i) => <span key={i} className={/[0-9]/.test(c) ? 'dg' : 'dg-sep'}>{c}</span>)}</>;
 }
 
 /** The current yard's hour as one thin bar: her loop (amber), her rest so far
