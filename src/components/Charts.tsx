@@ -68,8 +68,8 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
   </g>)}</g>;
 }
 
-export function LapChart({ laps, yards, modern = false }: { laps: LapPoint[]; yards: number; modern?: boolean }) {
-  const f: Frame = { w: 720, h: 258, l: 52, r: modern ? 96 : 74, t: 16, b: 32, yards };
+export function LapChart({ laps, yards, modern = false, extra = 0 }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number }) {
+  const f: Frame = { w: 720, h: 258 + extra, l: 52, r: modern ? 96 : 74, t: 16, b: 32, yards };
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -95,8 +95,8 @@ export function LapChart({ laps, yards, modern = false }: { laps: LapPoint[]; ya
   </svg>;
 }
 
-export function CarbsPerYard({ points, yards, modern = false, selected, onSelect }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void }) {
-  const f: Frame = { w: 720, h: 196, l: 52, r: 74, t: modern ? 30 : 20, b: 32, yards };
+export function CarbsPerYard({ points, yards, modern = false, selected, onSelect, extra = 0 }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void; extra?: number }) {
+  const f: Frame = { w: 720, h: 196 + extra, l: 52, r: 74, t: modern ? 30 : 20, b: 32, yards };
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CarbsPerYard, Cumulative, LapChart } from './components/Charts';
 import { useOfficialLaps } from './hooks/useOfficialLaps';
 import { intakeSeries, lapSeries } from './lib/dashData';
@@ -58,6 +58,23 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
   const [picked, setPicked] = useState<number | null>(null);
+  // Fill the screen: give spare height to the lap (60%) and carbs (40%)
+  // charts instead of leaving an empty band at the bottom.
+  const dashRef = useRef<HTMLDivElement>(null);
+  const [fill, setFill] = useState(0); // spare height in CSS px (negative = shrink to fit)
+  useLayoutEffect(() => {
+    const dash = dashRef.current, page = dash?.parentElement;
+    if (!dash || !page) return;
+    const measure = () => {
+      const style = getComputedStyle(page);
+      const room = page.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      setFill(f => Math.max(-90, Math.min(600, Math.round(f + room - dash.offsetHeight - 2))));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  });
+  const svgScale = 720 / Math.max(300, (dashRef.current?.clientWidth ?? 720) - 56); // CSS px → chart units
   useEffect(() => { if (picked === null) return; const id = setTimeout(() => setPicked(null), 12000); return () => clearTimeout(id); }, [picked]);
   const modern = true;
   const live = !!log.session;
@@ -94,7 +111,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
     catch (err) { setImportMessage(err instanceof Error ? err.message : 'Import failed.'); }
   }
 
-  return <div className="dash">
+  return <div className="dash" ref={dashRef}>
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong></div>
       <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
@@ -103,12 +120,12 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
 
     <section className="panel">
       <h2>Lap time per yard <span className="unit">min · shaded = plan</span></h2>
-      <LapChart laps={laps} yards={yards} modern={modern} />
+      <LapChart laps={laps} yards={yards} modern={modern} extra={Math.round(fill * 0.6 * svgScale)} />
     </section>
 
     <section className="panel">
       <h2>Carbs per yard <span className="unit">g · +? = some carbs unknown</span></h2>
-      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} selected={picked} onSelect={yd => setPicked(p => p === yd ? null : yd)} /> : <p className="empty">No intake data yet. Log in below.</p>}
+      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} extra={Math.round(fill * 0.4 * svgScale)} selected={picked} onSelect={yd => setPicked(p => p === yd ? null : yd)} /> : <p className="empty">No intake data yet. Log in below.</p>}
         {picked !== null && <YardCard yard={picked} records={records} start={start} onClose={() => setPicked(null)} />}
     </section>
 

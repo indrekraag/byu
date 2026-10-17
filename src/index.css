@@ -116,7 +116,9 @@ body { overflow: hidden; overscroll-behavior: none; }
 /* Opaque, full-width cap over the top edge: covers the status-bar area and
    stops iOS 26's scroll-edge blur, which WebKit skips when a flat fixed box
    covers the top. Keep it opaque and full width. */
-:root { --top-cap: calc(env(safe-area-inset-top, 0px) + 10px); }
+:root { --top-cap: calc(env(safe-area-inset-top, 0px) + 14px); }
+/* Content starts below iOS's top blur zone (~40 pt), whatever the status bar does. */
+.page { padding-top: max(calc(var(--top-cap) + 4px), 44px); }
 .top-cap { position: fixed; top: 0; left: 0; right: 0; height: var(--top-cap); background: var(--page); z-index: 10; }
 .top-cap::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; background: linear-gradient(var(--page), rgba(16, 17, 18, 0)); }
 button.import { background: none; font: inherit; color: var(--text); font-weight: 600; cursor: pointer; }
@@ -219,3 +221,10 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .entry-edit { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
 .entry-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--text-2); }
 .big-btn[aria-expanded="true"] { border-color: var(--lap) !important; }
+
+/* Footer: one quiet line; buttons compact. */
+.status { gap: 4px 14px; font-size: 14px; }
+.status .import, .status button.import { padding: 6px 12px; font-size: 14px; border-radius: 999px; }
+.status .import:first-of-type { margin-left: auto; }
+.status .login.compact input { padding: 8px 10px; font-size: 16px; }
+.status .login.compact button { padding: 8px 14px; font-size: 16px; }
