@@ -533,3 +533,31 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stats.big .hero { font-size: min(78px, 10.1vw) !important; }
 .stats.big .time-line { height: min(78px, 10.1vw); gap: 0; }
 .stats.big .km { font-size: min(24px, 3.1vw); margin-top: 6px; }
+
+/* ===== Colour code (2026-10-17): one meaning per colour, both pages =====
+   amber = food / carbs · blue = drinks / fluid · mint = reached the plan ·
+   pink = lap time. (Pink chosen with the palette validator: violet was too
+   close to the fluid blue.) */
+:root[data-look="charcoal"] { --fluid: #4a9be8; --ok: #43d6aa; --lap: #e879b9; --food: #f7a928; }
+.progress .fill { background: var(--food); }
+.progress .fill.fluid { background: var(--fluid); }
+.progress .fill.ok, .progress .fill.fluid.ok { background: var(--ok); }
+[data-look="charcoal"] svg text.bar-value.hit { fill: var(--ok); }
+.yb-rest { background: var(--ok); }
+.chip.ok { color: var(--ok); }
+@keyframes logged { 0%, 35% { background: rgba(67, 214, 170, .35); border-color: var(--ok); } 100% { } }
+@-webkit-keyframes logged { 0%, 35% { background: rgba(67, 214, 170, .35); border-color: var(--ok); } 100% { } }
+/* Buttons keep the amber accent; the page dot is neutral. */
+[data-look="charcoal"] .big-btn, [data-look="charcoal"] .big-btn[aria-pressed="true"], [data-look="charcoal"] .login button { background: var(--food); }
+[data-look="charcoal"] .dots button[aria-current="true"] { background: var(--text); }
+.big-btn[aria-expanded="true"] { border-color: var(--food) !important; }
+.sun-icon { stroke: var(--food); }
+/* Drinks are blue. */
+.big-btn.lap-bottle { border-color: var(--fluid); }
+.stepper-tile.drink .log-amount { background: var(--fluid); color: #fff; }
+/* Card tints on the log page: food faint amber, drinks faint blue. */
+.food-card { background: linear-gradient(rgba(247, 169, 40, .085), rgba(247, 169, 40, .035)), var(--surface) !important; border: 1px solid rgba(247, 169, 40, .22) !important; }
+.drink-card { background: linear-gradient(rgba(74, 155, 232, .10), rgba(74, 155, 232, .04)), var(--surface) !important; border: 1px solid rgba(74, 155, 232, .26) !important; }
+.food-card h2 { color: #f9c56b; }
+.drink-card h2 { color: #8fc2f2; }
+.stepper-tile.drink .log-amount { color: #0b1622; }

@@ -195,7 +195,7 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
         Food card never leaves a hole beside the shorter ones. */}
     <div className="log-cols">
       <div className="log-col">
-        <section className="card">
+        <section className="card drink-card">
           <h2>Drink</h2>
           <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
             <option value="">Choose drink</option>
@@ -231,7 +231,7 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
         </section>
       </div>
       <div className="log-col">
-        <section className="card">
+        <section className="card food-card">
           <h2>Food</h2>
           <div className="food-grid">{(usedFoods.length ? usedFoods : otherFoods).map(renderFood)}</div>
           {usedFoods.length > 0 && otherFoods.length > 0 && <>
