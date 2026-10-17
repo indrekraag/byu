@@ -377,3 +377,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 /* Temperature reads as a figure of its own: full white, after the sun times. */
 .hero.temp { color: var(--text); }
 .hero.temp.stale { color: var(--muted); }
+.time-line { gap: 22px; }
