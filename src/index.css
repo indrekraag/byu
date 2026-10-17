@@ -561,3 +561,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .food-card h2 { color: #f9c56b; }
 .drink-card h2 { color: #8fc2f2; }
 .stepper-tile.drink .log-amount { color: #0b1622; }
+[data-look="charcoal"] .big-btn.lap-bottle { background: rgba(74, 155, 232, .16); color: var(--text); border: 1px solid var(--fluid); }
