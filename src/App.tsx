@@ -175,6 +175,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
     </> : <>
     <header className={top === 'quiet' ? 'stats quiet' : 'stats'}>
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
+      <span className="sep" aria-hidden="true" />
       <div className="stat">
         <span className="label spacer" aria-hidden="true">Time</span>
         <span className="time-line">
@@ -183,6 +184,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
           {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'} title="Keila">{Math.round(weather.tempC)}°</strong>}
         </span>
       </div>
+      <span className="sep" aria-hidden="true" />
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
     </header>
     </>}

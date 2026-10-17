@@ -507,3 +507,10 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stats.quiet .hero { font-size: min(58px, 7.5vw) !important; }
 .stats.quiet .time-line { height: min(58px, 7.5vw); }
 .stats.quiet .stat + .stat { border-left-color: rgba(255,255,255,.24) !important; }
+/* Separators are elements of their own; the row spreads every element evenly,
+   so each separator has the same space on both sides. Hidden outside quiet. */
+.stats > .sep { display: none; }
+.stats.quiet { display: flex; justify-content: space-between; align-items: stretch; gap: 0; }
+.stats.quiet .stat { flex: 0 0 auto; padding-left: 0; padding-right: 0; }
+.stats.quiet .stat + .stat { border-left: 0 !important; }
+.stats.quiet > .sep { display: block; flex: 0 0 1px; align-self: stretch; margin: 6px 0; background: rgba(255,255,255,.24); }
