@@ -106,17 +106,20 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   }
 
   return <div className="log">
-    <header className="log-head">
-      <div className="yard-pick">
-        <button aria-label="Previous yard" onClick={() => setYardOffset(o => Math.max(1 - clock.lapNumber, o - 1))}>−</button>
-        <div><span className="label">{yardOffset ? 'Logging to yard' : 'Yard'}</span><strong>{yard}</strong></div>
-        <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
-      </div>
-      <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
-    </header>
-    <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
-    {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
-    {flash && <p className="flash" role="status">{flash}</p>}
+    {/* Stays on top while scrolling: which yard you are logging to, and the clock. */}
+    <div className="log-sticky">
+      <header className="log-head">
+        <div className="yard-pick">
+          <button aria-label="Previous yard" onClick={() => setYardOffset(o => Math.max(1 - clock.lapNumber, o - 1))}>−</button>
+          <div><span className="label">{yardOffset ? 'Logging to yard' : 'Yard'}</span><strong>{yard}</strong></div>
+          <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
+        </div>
+        <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
+      </header>
+      <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
+      {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
+      {flash && <p className="flash" role="status">{flash}</p>}
+    </div>
 
     <section className="card">
       <h2>Yard {yard} so far <span className="total">{Math.round(totals.carbs)} g{totals.incomplete ? ' + ?' : ''} · {totals.fluid} ml</span></h2>

@@ -12,6 +12,8 @@
 // - Small new potato: boiled with skin ≈ 15 g carbs per 100 g (UK PHE data via
 //   caloriecounter.com.au). Weight ASSUMED 50 g per potato → ½ ≈ 3.75 g.
 //   Replace POTATO_G with a weighed potato when possible.
+// - Banana, raw: 22.84 g carbs per 100 g; medium banana 118 g peeled
+//   (USDA SR Legacy) → ½ medium banana ≈ 13.5 g.
 const POTATO_G = 50;
 const POTATO_HALF_CARBS = Math.round(POTATO_G / 2 * 0.15 * 100) / 100;
 
@@ -24,7 +26,7 @@ export const FOODS: Food[] = [
   { id: 'solid-c', label: 'Solid C 160', text: 'Maurten Solid C 160', carbsG: 40, portions: [{ label: '20%', factor: 0.2 }, { label: '50%', factor: 0.5 }, { label: 'Full', factor: 1 }] },
   { id: 'potato-half', label: 'Small potato halves', text: 'small potato halves', carbsG: POTATO_HALF_CARBS, estimate: true, portions: [1, 2, 3, 4, 6, 8].map(n => ({ label: `${n}`, factor: n })) },
   { id: 'foodpack', label: 'Chicken & noodles', text: 'Tactical Foodpack chicken & noodles (514 kcal portion)', carbsG: 56, stepper: 0.1 },
-  { id: 'banana', label: '½ banana', text: '½ banana, cut into 3 bite-size pieces' },
+  { id: 'banana', label: '½ banana', text: '½ banana, cut into 3 bite-size pieces', carbsG: 13.5 },
   { id: 'orange', label: '4 orange segments', text: '4 peeled orange segments' },
   { id: 'potatoes', label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl' },
   { id: 'mash', label: 'Mash 100 g', text: '100 g prepared familiar mash in 1 bowl' },

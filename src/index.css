@@ -230,3 +230,9 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .status .login.compact button { padding: 8px 14px; font-size: 16px; }
 .yard-line { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
 .km { font-size: min(24px, 3.1vw); font-weight: 600; color: var(--text-2); }
+
+/* Log page: yard + next start stay pinned while scrolling. The block reaches
+   up under the top padding so it also covers the blur zone. */
+.log-sticky { position: -webkit-sticky; position: sticky; top: 0; z-index: 4; background: var(--page); margin: -44px -16px 10px; padding: 44px 16px 8px; box-shadow: 0 10px 14px -12px rgba(0,0,0,.8); }
+.log-sticky .sync { margin: 6px 0 0; }
+.log-sticky .flash { margin: 8px 0 0; }
