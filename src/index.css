@@ -101,3 +101,4 @@ a.link { color: var(--text-2); font-size: 17px; padding: 10px 4px; }
 .tools { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .file-btn { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: var(--text-2); font-size: 17px; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; }
+a.import { color: var(--text); text-decoration: none; font-weight: 600; }
