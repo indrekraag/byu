@@ -111,6 +111,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     setFoodAmt(m => { const n = { ...m }; delete n[f.id]; return n; });
   }
   const amountLabel = (f: Food, v: number) => f.amount!.kind === 'percent' ? `${Math.round(v * 100)}%` : `${v} ${f.id === 'gummies' ? 'pcs' : '×'}`;
+  // No drink chosen on this device yet: use the last station drink logged.
+  const lastStationKind = history.find(e => e.kind === 'drink' && !e.text.startsWith('Lap bottle') && e.drinkKind)?.drinkKind as DrinkKind | undefined;
+  if (!drink && lastStationKind) queueMicrotask(() => setDrink(d => d || lastStationKind));
   const stationMl = drink ? drinkMl[drink] ?? lastDrinkMl(drink) : DRINK_STEP.start;
   const stationCarbs = drink ? drinkEntry(drink, stationMl, '', '', label === '' ? undefined : Number(label)).carbsG : undefined;
   function nudgeDrink(dir: 1 | -1) {
