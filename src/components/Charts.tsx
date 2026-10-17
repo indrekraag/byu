@@ -69,9 +69,20 @@ function smoothPath(pts: [number, number][]) {
   return path;
 }
 
-function Badge({ x, y, text, cls }: { x: number; y: number; text: string; cls: string }) {
-  const w = text.length * 12 + 20;
-  return <g className={`badge ${cls}`}><rect x={x} y={y - 16} width={w} height={32} rx={16} /><text x={x + w / 2} y={y + 7} textAnchor="middle">{text}</text></g>;
+/** Speech-bubble badge centred over its point, pointer down to it; flips
+ *  below the point when there is no room above. */
+function Callout({ x, y, text, minX, maxX, top }: { x: number; y: number; text: string; minX: number; maxX: number; top: number }) {
+  const w = text.length * 12 + 22, h = 30, gap = 10, tip = 7;
+  const above = y - gap - tip - h >= top - 6;
+  const bx = Math.max(minX, Math.min(maxX - w, x - w / 2));
+  const by = above ? y - gap - tip - h : y + gap + tip;
+  const tx = Math.max(bx + 12, Math.min(bx + w - 12, x));
+  const pointer = above ? `M${tx - tip},${by + h - 1}L${tx},${by + h + tip}L${tx + tip},${by + h - 1}Z` : `M${tx - tip},${by + 1}L${tx},${by - tip}L${tx + tip},${by + 1}Z`;
+  return <g className="badge badge-lap callout">
+    <rect x={bx} y={by} width={w} height={h} rx={h / 2} />
+    <path d={pointer} />
+    <text x={bx + w / 2} y={by + h / 2 + 6} textAnchor="middle">{text}</text>
+  </g>;
 }
 
 function Defs() {
@@ -144,7 +155,7 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
       });
     })()}
     {last && (modern
-      ? <Badge cls="badge-lap" x={Math.min(xOf(f, last.yard) + 14, f.w - f.r + 4)} y={y(last.lapMs / 60000)} text={formatClock(last.lapMs)} />
+      ? <Callout x={xOf(f, last.yard)} y={y(last.lapMs / 60000)} minX={f.l} maxX={f.w - 4} top={f.t} text={formatClock(last.lapMs)} />
       : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}
     <YardAxis f={f} />
   </ChartFrame>;

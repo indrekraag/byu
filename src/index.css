@@ -590,3 +590,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 /* Behind on fuel: the Total carbs title says so, in orange. */
 .panel h2.behind { color: #ff9d2e; }
 .behind-note { font-size: 14px; font-weight: 600; margin-left: 8px; color: #ff9d2e; }
+:root:not([data-look="default"]) .badge path { fill: var(--lap); }
