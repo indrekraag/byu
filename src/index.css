@@ -18,12 +18,12 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--page); color: var(--text); }
 body { font-family: -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif; -webkit-text-size-adjust: 100%; font-variant-numeric: tabular-nums; }
-.dash { max-width: 1024px; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom)); }
+.dash { max-width: 1024px; margin: 0 auto; padding: 0 16px max(12px, env(safe-area-inset-bottom)); }
 
-.stats { display: grid; grid-template-columns: 1fr 1.4fr 1.2fr; gap: 10px; margin-bottom: 10px; }
+.stats { display: grid; grid-template-columns: 0.7fr 1.6fr 1.1fr; gap: 10px; margin-bottom: 10px; }
 .stat { background: var(--surface); border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; min-width: 0; }
 .label { font-size: 18px; color: var(--text-2); }
-.hero { font-size: 64px; line-height: 1.05; font-weight: 700; letter-spacing: -1px; }
+.hero { font-size: min(62px, 7.6vw); line-height: 1.05; font-weight: 700; letter-spacing: -1px; }
 .big { font-size: 52px; line-height: 1.1; font-weight: 700; }
 .sub { font-size: 22px; color: var(--text-2); }
 
@@ -80,7 +80,7 @@ button.link { background: none; border: 0; color: var(--text-2); text-decoration
 a.link { color: var(--text-2); font-size: 17px; padding: 10px 4px; }
 
 /* Phone logging page */
-.log { max-width: 560px; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+.log { max-width: 560px; margin: 0 auto; padding: 0 16px max(24px, env(safe-area-inset-bottom)); }
 .log-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .yard-pick { display: flex; align-items: center; gap: 10px; }
 .yard-pick > div { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
@@ -102,3 +102,21 @@ a.link { color: var(--text-2); font-size: 17px; padding: 10px 4px; }
 .file-btn { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: var(--text-2); font-size: 17px; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; }
 a.import { color: var(--text); text-decoration: none; font-weight: 600; }
+
+/* Pager: two full-screen pages, native horizontal swipe with snap. */
+html, body, #root { height: 100%; }
+body { overflow: hidden; overscroll-behavior: none; }
+.pager { display: flex; height: 100%; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.pager::-webkit-scrollbar { display: none; }
+.page { flex: 0 0 100%; width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden; scroll-snap-align: start; scroll-snap-stop: always; -webkit-overflow-scrolling: touch; padding-top: calc(var(--top-cap) + 4px); }
+.dots { position: fixed; left: 0; right: 0; bottom: max(6px, env(safe-area-inset-bottom)); display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+.dots button { pointer-events: auto; width: 9px; height: 9px; padding: 0; border-radius: 50%; border: 0; background: var(--line); }
+.dots button[aria-current="true"] { background: var(--text-2); }
+.dash, .log { padding-bottom: 28px; }
+/* Opaque, full-width cap over the top edge: covers the status-bar area and
+   stops iOS 26's scroll-edge blur, which WebKit skips when a flat fixed box
+   covers the top. Keep it opaque and full width. */
+:root { --top-cap: calc(env(safe-area-inset-top, 0px) + 10px); }
+.top-cap { position: fixed; top: 0; left: 0; right: 0; height: var(--top-cap); background: var(--page); z-index: 10; }
+.top-cap::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; background: linear-gradient(var(--page), rgba(16, 17, 18, 0)); }
+button.import { background: none; font: inherit; color: var(--text); font-weight: 600; cursor: pointer; }

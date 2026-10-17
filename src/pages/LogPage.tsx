@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Login } from '../components/Login';
-import { useRaceLog } from '../hooks/useRaceLog';
+import type { RaceLog } from '../App';
 import { DRINKS, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
 import { computeLapClock, formatClock, raceStartUtc } from '../lib/raceClock';
 import { eventToRow, rowsFromHQ, type Op } from '../lib/raceLog';
@@ -23,8 +23,7 @@ const LAST_DRINK_KEY = 'byu-dash:last-drink';
 const uuid = () => crypto.randomUUID();
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Europe/Tallinn', hour: '2-digit', minute: '2-digit' });
 
-export function LogPage() {
-  const log = useRaceLog();
+export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const start = raceStartUtc();
@@ -132,7 +131,7 @@ export function LogPage() {
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
       <button className="link" onClick={exportJson}>Export race log</button>
-      <a className="link" href="./">Dashboard</a>
+      <button className="link" onClick={onDashboard}>← Dashboard</button>
       <button className="link" onClick={() => void supabase.auth.signOut()}>Log out</button>
     </section>
   </div>;

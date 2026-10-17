@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CarbsPerYard, Cumulative, LapChart } from './components/Charts';
 import { useOfficialLaps } from './hooks/useOfficialLaps';
 import { intakeSeries, lapSeries } from './lib/dashData';
@@ -12,17 +12,46 @@ import { LogPage } from './pages/LogPage';
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
 
+const timeWithSeconds = (d: Date) => d.toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+export type RaceLog = ReturnType<typeof useRaceLog>;
+
+// Two full-screen pages side by side: swipe left for logging, right for the
+// charts. Native scroll-snap, so the swipe feels like any iOS pager. One sync
+// connection is shared so both pages never send the same outbox twice.
 function App() {
-  const [hash, setHash] = useState(() => location.hash);
-  useEffect(() => { const on = () => setHash(location.hash); window.addEventListener('hashchange', on); return () => window.removeEventListener('hashchange', on); }, []);
-  return hash === '#log' ? <LogPage /> : <Dashboard />;
+  const log = useRaceLog();
+  const pager = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(() => location.hash === '#log' ? 1 : 0);
+  const goTo = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
+  useEffect(() => {
+    const el = pager.current; if (!el) return;
+    if (page === 1) el.scrollLeft = el.clientWidth;
+    let t: ReturnType<typeof setTimeout>;
+    const onScroll = () => { clearTimeout(t); t = setTimeout(() => {
+      const i = Math.round(el.scrollLeft / el.clientWidth); setPage(i);
+      history.replaceState(null, '', i === 1 ? '#log' : location.pathname + location.search);
+    }, 80); };
+    const onHash = () => goTo(location.hash === '#log' ? 1 : 0);
+    const onResize = () => { el.scrollLeft = Math.round(el.scrollLeft / el.clientWidth) * el.clientWidth; };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('hashchange', onHash);
+    window.addEventListener('resize', onResize);
+    return () => { el.removeEventListener('scroll', onScroll); window.removeEventListener('hashchange', onHash); window.removeEventListener('resize', onResize); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <>
+    <div className="top-cap" aria-hidden="true" />
+    <div className="pager" ref={pager}>
+      <section className="page" aria-label="Dashboard"><Dashboard log={log} onLog={() => goTo(1)} /></section>
+      <section className="page" aria-label="Log food and drink"><LogPage log={log} onDashboard={() => goTo(0)} /></section>
+    </div>
+    <nav className="dots" aria-label="Pages">{['Dashboard', 'Log'].map((label, i) => <button key={label} aria-label={label} aria-current={page === i} onClick={() => goTo(i)} />)}</nav>
+  </>;
 }
 
-function Dashboard() {
+function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
-  const log = useRaceLog();
   const live = !!log.session;
   const [imported, setImported] = useState<ImportedIntake | null>(loadImported);
   const [importMessage, setImportMessage] = useState('');
@@ -38,7 +67,6 @@ function Dashboard() {
   const minute = Math.floor(now.getTime() / 60000);
   const laps = useMemo(() => lapSeries(snapshot?.finishes ?? [], records, start, new Date(minute * 60000 + 59999)), [snapshot, records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
-  const last = laps[laps.length - 1];
   const totals = intake[intake.length - 1];
   const lastEntry = Object.values(records).flatMap(r => r.intake ?? []).map(e => e.at).sort().pop();
   // Keep a permanent copy of each official lap in the crew log.
@@ -61,8 +89,8 @@ function Dashboard() {
   return <div className="dash">
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong></div>
-      <div className="stat"><span className="label">{started ? 'Next start in' : 'Countdown'}</span><strong className="hero">{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
-      <div className="stat"><span className="label">Last lap{last ? ` · yard ${last.yard}` : ''}</span><strong className="big">{last ? formatClock(last.lapMs) : '—'}</strong><span className="sub">{last ? `rest ${formatClock(last.restMs)}` : 'no lap yet'}</span></div>
+      <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
+      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className="hero">{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
 
     <section className="panel">
@@ -82,7 +110,7 @@ function Dashboard() {
 
     <footer className="status">
       <span className={error || stale ? 'warn' : undefined}>Laps: {snapshot ? `official feed ${clockTime(snapshot.checkedAt)}` : 'waiting for feed'}{error ? ` · ${error}` : ''}</span>
-      {live && <a className="import" href="#log">Log food &amp; drink →</a>}
+      {live && <button className="import" onClick={onLog}>Log food &amp; drink →</button>}
       {live
         ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: live{log.loadedAt ? ` · synced ${clockTime(log.loadedAt.toISOString())}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
         : <>

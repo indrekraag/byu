@@ -8,7 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#101112" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "black", not black-translucent: the app starts below a solid status bar
+         (black-translucent lays content under it, and newer iOS blurs that edge).
+         iOS keeps this from install time: remove and re-add the home-screen icon. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Crew Dash" />
     <title>Crew Dashboard</title>
   </head>
