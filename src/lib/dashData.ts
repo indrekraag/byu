@@ -4,10 +4,9 @@ import type { OfficialFinish } from './officialResults';
 import type { YardRecord } from './raceHQ';
 import { raceSummaryRows } from './raceSummary';
 import { targetsForYard } from './yardTargets';
-import { raceIntakeRecords } from './intakeAdvice';
 
 export type LapPoint = { yard: number; lapMs: number; restMs: number; source: 'official' | 'manual' };
-export type IntakePoint = { yard: number; carbs: number; foodCarbs: number; drinkCarbs: number; fluid: number; incomplete: boolean; hasEntries: boolean; current: boolean; cumCarbs: number; cumFluid: number; cumCarbMin: number; cumCarbMax: number; cumFluidMin: number; cumFluidMax: number; carbMin: number; carbMax: number };
+export type IntakePoint = { yard: number; carbs: number; fluid: number; incomplete: boolean; hasEntries: boolean; current: boolean; cumCarbs: number; cumFluid: number; cumCarbMin: number; cumCarbMax: number; cumFluidMin: number; cumFluidMax: number; carbMin: number; carbMax: number };
 
 const HOUR = 3_600_000;
 
@@ -27,13 +26,11 @@ export function planBand(yard: number) {
 /** Per-yard and running intake totals, oldest yard first, through the current yard. */
 export function intakeSeries(records: Record<string, YardRecord>, start: Date, now: Date): IntakePoint[] {
   const rows = raceSummaryRows(records, start, now).slice().reverse();
-  const counted = raceIntakeRecords(records, start, now);
-  const split = (yard: number, kind: 'food' | 'drink') => (counted[yard]?.intake ?? []).filter(e => (e.kind ?? 'food') === kind).reduce((s, e) => s + (e.carbsG ?? 0), 0);
   let cumCarbs = 0, cumFluid = 0, cumCarbMin = 0, cumCarbMax = 0, cumFluidMin = 0, cumFluidMax = 0;
   return rows.map(row => {
     const t = targetsForYard(row.yard);
     cumCarbs += row.carbs; cumFluid += row.fluid;
     cumCarbMin += t.carbMin; cumCarbMax += t.carbMax; cumFluidMin += t.fluidMin; cumFluidMax += t.fluidMax;
-    return { yard: row.yard, carbs: row.carbs, foodCarbs: split(row.yard, 'food'), drinkCarbs: split(row.yard, 'drink'), fluid: row.fluid, incomplete: row.incomplete, hasEntries: row.hasEntries, current: row.current, cumCarbs, cumFluid, cumCarbMin, cumCarbMax, cumFluidMin, cumFluidMax, carbMin: t.carbMin, carbMax: t.carbMax };
+    return { yard: row.yard, carbs: row.carbs, fluid: row.fluid, incomplete: row.incomplete, hasEntries: row.hasEntries, current: row.current, cumCarbs, cumFluid, cumCarbMin, cumCarbMax, cumFluidMin, cumFluidMax, carbMin: t.carbMin, carbMax: t.carbMax };
   });
 }

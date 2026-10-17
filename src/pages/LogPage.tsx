@@ -1,8 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Login } from '../components/Login';
 import type { RaceLog } from '../App';
-import type { CarbsVariant } from '../components/Charts';
-import { CARBS_VARIANTS } from '../lib/carbsVariant';
 import { DRINKS, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
 import { computeLapClock, formatClock, raceStartUtc } from '../lib/raceClock';
 import { eventToRow, rowsFromHQ, type Op } from '../lib/raceLog';
@@ -25,7 +23,7 @@ const LAST_DRINK_KEY = 'byu-dash:last-drink';
 const uuid = () => crypto.randomUUID();
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Europe/Tallinn', hour: '2-digit', minute: '2-digit' });
 
-export function LogPage({ log, carbs, onCarbs, onDashboard }: { log: RaceLog; carbs: CarbsVariant; onCarbs: (v: CarbsVariant) => void; onDashboard: () => void }) {
+export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const start = raceStartUtc();
@@ -41,9 +39,8 @@ export function LogPage({ log, carbs, onCarbs, onDashboard }: { log: RaceLog; ca
   const [flash, setFlash] = useState('');
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
 
-  const carbsSwitch = <section className="card"><h2>Carbs chart option</h2><div className="row three">{CARBS_VARIANTS.map(c => <button key={c.id} className="big-btn secondary option" aria-pressed={carbs === c.id} onClick={() => onCarbs(c.id)}>{c.label}</button>)}</div></section>;
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
-  if (!log.session) return <div className="log"><Login />{carbsSwitch}</div>;
+  if (!log.session) return <div className="log"><Login /></div>;
 
   const counted = raceIntakeRecords(log.records, start, new Date(now.getTime() + 60000));
   const record = counted[yard];
@@ -131,7 +128,6 @@ export function LogPage({ log, carbs, onCarbs, onDashboard }: { log: RaceLog; ca
       </div>)}
     </section>
 
-    {carbsSwitch}
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
       <button className="link" onClick={exportJson}>Export race log</button>
