@@ -459,3 +459,6 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 /* Yard bar: no text line; centred in the gap, a little thicker. */
 .yardbar { margin: 2px 2px 12px; }
 .yardbar-track { height: 10px; border-radius: 5px; }
+.yardbar { margin-top: 4px; }
+/* Hit-the-plan figures: clearly green, still high contrast on the dark card. */
+[data-look="charcoal"] svg text.bar-value.hit { fill: #4fdc7c; }
