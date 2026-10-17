@@ -3,17 +3,18 @@ export type DrinkKind = 'water' | 'varska' | '160' | '320' | 'arctic-greip' | 'a
 // Dropdown order: her lap drinks first. (Object key order can't be used: JS
 // lists number-like keys such as '160' before the others.)
 export const DRINK_ORDER: DrinkKind[] = ['water', 'varska', '160', '320', 'arctic-greip', 'arctic-apple', 'oshee', 'cido', 'other'];
-export const DRINKS: Record<DrinkKind, { label: string; carbsPer500?: number }> = {
-  water: { label: 'Plain water', carbsPer500: 0 },
+// `short` is the name in the drink list; `label` (longer) stays in logged entries.
+export const DRINKS: Record<DrinkKind, { label: string; short: string; carbsPer500?: number }> = {
+  water: { label: 'Plain water', short: 'Water', carbsPer500: 0 },
   // Värska Originaal: natural mineral water, no sugar.
-  varska: { label: 'Värska mineral water', carbsPer500: 0 },
-  '160': { label: 'Drink Mix 160 (1 sachet / 500 ml)', carbsPer500: 40 },
-  '320': { label: 'Drink Mix 320 (1 sachet / 500 ml)', carbsPer500: 80 },
-  'arctic-greip': { label: 'Arctic Sport Greip (regular; check label)', carbsPer500: 33.5 },
-  'arctic-apple': { label: 'Arctic Sport Õun · 40% less sugar (check label)', carbsPer500: 20 },
-  oshee: { label: 'OSHEE HydroBoost Juicy Lemon · label needed' },
-  cido: { label: 'Cido Hydrate / Hydrate+ · label needed' },
-  other: { label: 'Other / strength unknown' },
+  varska: { label: 'Värska mineral water', short: 'Värska', carbsPer500: 0 },
+  '160': { label: 'Drink Mix 160 (1 sachet / 500 ml)', short: 'Maurten Mix 160 · 8 g/100 ml', carbsPer500: 40 },
+  '320': { label: 'Drink Mix 320 (1 sachet / 500 ml)', short: 'Maurten Mix 320 · 16 g/100 ml', carbsPer500: 80 },
+  'arctic-greip': { label: 'Arctic Sport Greip (regular; check label)', short: 'Arctic Greip · 6.7 g/100 ml', carbsPer500: 33.5 },
+  'arctic-apple': { label: 'Arctic Sport Õun · 40% less sugar (check label)', short: 'Arctic Õun · 4 g/100 ml', carbsPer500: 20 },
+  oshee: { label: 'OSHEE HydroBoost Juicy Lemon · label needed', short: 'OSHEE · enter label' },
+  cido: { label: 'Cido Hydrate / Hydrate+ · label needed', short: 'Cido · enter label' },
+  other: { label: 'Other / strength unknown', short: 'Other drink' },
 };
 // Keep rehearsal / pre-race entries in history without treating them as race intake.
 export function raceIntakeRecords(records: Record<string, YardRecord>, start: Date, now: Date): Record<string, YardRecord> {

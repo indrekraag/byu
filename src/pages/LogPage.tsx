@@ -192,58 +192,60 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     </div>
 
 
-    {/* Phone: one column. iPad and wider: two columns (see .log-cols). */}
+    {/* Phone: one column. iPad and wider: two independent columns, so a tall
+        Food card never leaves a hole beside the shorter ones. */}
     <div className="log-cols">
-      <section className="card">
-        <h2>Drink</h2>
-        <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
-          <option value="">Choose drink</option>
-          {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
-        </select>
-        {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
-        <p className="portion-title">Lap bottle back (250 ml water) · tap what is left</p>
-        <div className="row four">{LAP_BOTTLE_LEFT.map(o => <button key={o.label} className={`big-btn lap-bottle${justLogged === `lap:${o.label}` ? ' just-logged' : ''}`} disabled={!started} onClick={() => lapBottleBack(o.label, o.left)}>{o.label}<small>{lapBottleDrunk(o.left)} ml drunk</small></button>)}</div>
-        <p className="portion-title">Station drink</p>
-        <div className={`stepper-tile drink${justLogged === 'station' ? ' just-logged' : ''}`}>
-          <button className="step" aria-label="Less" disabled={!drink || stationMl <= DRINK_STEP.min} onClick={() => nudgeDrink(-1)}>−</button>
-          <button className="big-btn log-amount" disabled={!started || !drink || !labelOk} onClick={logStation}>{drink ? <>Log {stationMl} ml<small>{DRINKS[drink].label.split(' (')[0]}{stationCarbs !== undefined ? ` · ${g(stationCarbs)} g` : ' · carbs ?'}</small></> : 'Choose a drink above'}</button>
-          <button className="step" aria-label="More" disabled={!drink || stationMl >= DRINK_STEP.max} onClick={() => nudgeDrink(1)}>+</button>
-        </div>
-      </section>
-      <section className="card">
-        <h2>Food</h2>
-        <div className="food-grid">{(usedFoods.length ? usedFoods : otherFoods).map(renderFood)}</div>
-        {usedFoods.length > 0 && otherFoods.length > 0 && <>
-          <button className="fold" aria-expanded={moreFoods} onClick={() => setMoreFoods(o => !o)}><span className="portion-title">More foods ({otherFoods.length})</span><span>{moreFoods ? 'Hide' : 'Show'}</span></button>
-          {moreFoods && <div className="food-grid">{otherFoods.map(renderFood)}</div>}
-        </>}
-        <div className="row custom">
-          <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
-          <input type="number" inputMode="decimal" min="0" placeholder="g carbs" value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
-          <button className="big-btn secondary" disabled={!started || !foodText.trim()} onClick={() => { addFood(foodText.trim(), foodCarbs === '' ? undefined : Number(foodCarbs)); setFoodText(''); setFoodCarbs(''); }}>Add</button>
-        </div>
-      </section>
-    </div>
-
-    <div className="log-cols">
-      <section className="card">
-        <h2>Logged this yard</h2>
-        {!entries.length && !notes.length && <p className="muted">Nothing yet.</p>}
-        {notes.map(n => <div key={n.id} className="entry"><span>{hhmm(n.at)} · Note: {n.text}</span><span className="entry-actions"><button className="link" onClick={() => { add({ type: 'undo', id: n.id, at: new Date().toISOString() }); setFlash('Note removed.'); }}>Undo</button></span></div>)}
-        {entries.map(e => editing === e.id
-          ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
-          : <div key={e.id} className="entry">
-            <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace(FOOD_PREFIX, '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${g(e.carbsG)} g`}</span>
-            <span className="entry-actions">
-              <button className="link" onClick={() => setEditing(e.id)}>Edit</button>
-              <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
-            </span>
-          </div>)}
-      </section>
-      <section className="card">
-        <button className="fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(o => !o)}><h2>Notes</h2><span>{notesOpen ? 'Hide' : 'Show'}</span></button>
-        {notesOpen && <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>}
-      </section>
+      <div className="log-col">
+        <section className="card">
+          <h2>Drink</h2>
+          <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
+            <option value="">Choose drink</option>
+            {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].short}</option>)}
+          </select>
+          {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
+          <p className="portion-title">Lap bottle back (250 ml water) · tap what is left</p>
+          <div className="row four">{LAP_BOTTLE_LEFT.map(o => <button key={o.label} className={`big-btn lap-bottle${justLogged === `lap:${o.label}` ? ' just-logged' : ''}`} disabled={!started} onClick={() => lapBottleBack(o.label, o.left)}>{o.label}<small>{lapBottleDrunk(o.left)} ml</small></button>)}</div>
+          <p className="portion-title">Station drink</p>
+          <div className={`stepper-tile drink${justLogged === 'station' ? ' just-logged' : ''}`}>
+            <button className="step" aria-label="Less" disabled={!drink || stationMl <= DRINK_STEP.min} onClick={() => nudgeDrink(-1)}>−</button>
+            <button className="big-btn log-amount" disabled={!started || !drink || !labelOk} onClick={logStation}>{drink ? <>Log {stationMl} ml<small>{DRINKS[drink].short.split(' · ')[0]}{stationCarbs !== undefined ? ` · ${g(stationCarbs)} g` : ' · carbs ?'}</small></> : 'Choose a drink above'}</button>
+            <button className="step" aria-label="More" disabled={!drink || stationMl >= DRINK_STEP.max} onClick={() => nudgeDrink(1)}>+</button>
+          </div>
+        </section>
+        <section className="card">
+          <h2>Logged this yard</h2>
+          {!entries.length && !notes.length && <p className="muted">Nothing yet.</p>}
+          {notes.map(n => <div key={n.id} className="entry"><span>{hhmm(n.at)} · Note: {n.text}</span><span className="entry-actions"><button className="link" onClick={() => { add({ type: 'undo', id: n.id, at: new Date().toISOString() }); setFlash('Note removed.'); }}>Undo</button></span></div>)}
+          {entries.map(e => editing === e.id
+            ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
+            : <div key={e.id} className="entry">
+              <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace(FOOD_PREFIX, '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${g(e.carbsG)} g`}</span>
+              <span className="entry-actions">
+                <button className="link" onClick={() => setEditing(e.id)}>Edit</button>
+                <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
+              </span>
+            </div>)}
+        </section>
+        <section className="card">
+          <button className="fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(o => !o)}><h2>Notes</h2><span>{notesOpen ? 'Hide' : 'Show'}</span></button>
+          {notesOpen && <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>}
+        </section>
+      </div>
+      <div className="log-col">
+        <section className="card">
+          <h2>Food</h2>
+          <div className="food-grid">{(usedFoods.length ? usedFoods : otherFoods).map(renderFood)}</div>
+          {usedFoods.length > 0 && otherFoods.length > 0 && <>
+            <button className="fold" aria-expanded={moreFoods} onClick={() => setMoreFoods(o => !o)}><span className="portion-title">More foods ({otherFoods.length})</span><span>{moreFoods ? 'Hide' : 'Show'}</span></button>
+            {moreFoods && <div className="food-grid">{otherFoods.map(renderFood)}</div>}
+          </>}
+          <div className="row custom">
+            <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
+            <input type="number" inputMode="decimal" min="0" placeholder="g carbs" value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
+            <button className="big-btn secondary" disabled={!started || !foodText.trim()} onClick={() => { addFood(foodText.trim(), foodCarbs === '' ? undefined : Number(foodCarbs)); setFoodText(''); setFoodCarbs(''); }}>Add</button>
+          </div>
+        </section>
+      </div>
     </div>
 
     <section className="card backup">

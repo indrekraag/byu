@@ -465,3 +465,7 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .yardbar { margin-bottom: 10px; }
 /* One green everywhere: "reached the plan" uses the same mint as fluid and the meters. */
 [data-look="charcoal"] svg text.bar-value.hit { fill: var(--fluid); }
+/* Two independent columns on iPad (no row-aligned holes). */
+.log-col { min-width: 0; }
+@media (min-width: 700px) { .log-col > .card { margin-bottom: 10px; } }
+.log .lap-bottle { line-height: 1.2; }
