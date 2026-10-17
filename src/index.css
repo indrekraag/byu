@@ -463,3 +463,5 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 /* Hit-the-plan figures: clearly green, still high contrast on the dark card. */
 [data-look="charcoal"] svg text.bar-value.hit { fill: #4fdc7c; }
 .yardbar { margin-bottom: 10px; }
+/* One green everywhere: "reached the plan" uses the same mint as fluid and the meters. */
+[data-look="charcoal"] svg text.bar-value.hit { fill: var(--fluid); }
