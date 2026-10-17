@@ -469,3 +469,8 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .log-col { min-width: 0; }
 @media (min-width: 700px) { .log-col > .card { margin-bottom: 10px; } }
 .log .lap-bottle { line-height: 1.2; }
+/* One footer on both pages: status left, Hard refresh right. */
+.status.unified { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.status-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.status.unified .import { margin-left: 0; flex-shrink: 0; }
+.tool-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }

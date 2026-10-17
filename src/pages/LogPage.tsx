@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Login } from '../components/Login';
 import type { RaceLog } from '../App';
 import { DRINKS, DRINK_ORDER, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
@@ -11,7 +11,6 @@ import { supabase } from '../lib/supabase';
 import { readJournal, readSnapshots, toCsv } from '../lib/backup';
 import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
-import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
 import { NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
 import { targetsForYard } from '../lib/yardTargets';
@@ -22,7 +21,7 @@ const LAST_DRINK_KEY = 'byu-dash:last-drink';
 const uuid = () => crypto.randomUUID();
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Europe/Tallinn', hour: '2-digit', minute: '2-digit' });
 
-export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () => void }) {
+export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const start = raceStartUtc();
@@ -249,29 +248,25 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     </div>
 
     <section className="card backup">
-      <h2>Backup</h2>
+      <h2>Backup &amp; tools</h2>
       <p className="backup-status">
-        <span className={log.pending ? 'warn' : undefined}>{log.pending ? `${log.pending} waiting to send` : 'Everything sent'}</span>
-        <span>Server copy {log.loadedAt ? hhmm(log.loadedAt.toISOString()) : '—'} · {log.intake.length} entries</span>
-        <span>This device: {readJournal().length} logged · {readSnapshots().length} snapshots{readSnapshots().length ? ` (latest ${hhmm(readSnapshots()[readSnapshots().length - 1].at)})` : ''}</span>
+        <span className={log.pending ? 'warn' : undefined}>{log.pending ? `${log.pending} waiting to send` : 'Everything sent'} · server copy {log.loadedAt ? hhmm(log.loadedAt.toISOString()) : '—'} · {log.intake.length} entries</span>
+        <span>This device: {readJournal().length} logged · {readSnapshots().length} snapshots{readSnapshots().length ? ` (latest ${hhmm(readSnapshots()[readSnapshots().length - 1].at)})` : ''} · off-site copy every 15 min</span>
         {log.repaired > 0 && <span className="warn">Re-sent {log.repaired} entr{log.repaired === 1 ? 'y' : 'ies'} the server was missing</span>}
       </p>
       <div className="row two">
         <button className="big-btn secondary" onClick={exportJson}>Download backup (JSON)</button>
         <button className="big-btn secondary" onClick={exportCsv}>Download spreadsheet (CSV)</button>
       </div>
+      <div className="tool-links">
+        <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
+        {/* Returns come in automatically from the official timing; this is the fallback. */}
+        <button className="link" disabled={!started} onClick={backNow}>{returned ? `Return ${hhmm(returned)} · set to now` : 'Log return now'}</button>
+        <button className="link" onClick={() => void supabase.auth.signOut()}>Log out</button>
+      </div>
     </section>
 
-    <section className="card tools">
-      <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
-
-      {/* Returns come in automatically from the official timing; this is the fallback. */}
-      <button className="link" disabled={!started} onClick={backNow}>{returned ? `Return ${hhmm(returned)} · set to now` : 'Log return now'}</button>
-      <button className="link" onClick={onDashboard}>← Dashboard</button>
-      <button className="link" onClick={refresh}>Refresh</button>
-      <button className="link" onClick={hardRefresh}>Hard refresh</button>
-      <button className="link" onClick={() => void supabase.auth.signOut()}>Log out</button>
-    </section>
+    {footer}
   </div>;
 }
 

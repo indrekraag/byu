@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { CarbsPerYard, Cumulative, LapChart } from './components/Charts';
 import { useOfficialLaps } from './hooks/useOfficialLaps';
 import { intakeSeries, lapSeries, planBand } from './lib/dashData';
@@ -7,10 +7,10 @@ import { computeLapClock, formatClock, raceStartUtc } from './lib/raceClock';
 import { RACE } from './data/raceConfig';
 import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
+import { StatusFooter } from './components/StatusFooter';
 import { LogPage } from './pages/LogPage';
 import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
-import { hardRefresh, refresh } from './lib/refresh';
 import { RESTORE_KEY } from './lib/autoUpdate';
 import { useWeather } from './hooks/useWeather';
 import { nextSunEvents } from './lib/sun';
@@ -29,6 +29,15 @@ export type RaceLog = ReturnType<typeof useRaceLog>;
 // connection is shared so both pages never send the same outbox twice.
 function App() {
   const log = useRaceLog();
+  const official = useOfficialLaps();
+  const [tick, setTick] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setTick(Date.now()), 5000); return () => clearInterval(id); }, []);
+  const lapsStale = official.snapshot ? tick - Date.parse(official.snapshot.checkedAt) > 5 * 60000 : true;
+  const footer = <StatusFooter
+    laps={`${official.snapshot ? `official feed ${clockTime(official.snapshot.checkedAt)}` : 'waiting for feed'}${official.error ? ` · ${official.error}` : ''}`}
+    lapsWarn={!!official.error || lapsStale}
+    intake={log.session ? `${log.liveLink ? 'live' : 'checking every 15 s'}${log.loadedAt ? ` · synced ${timeWithSeconds(log.loadedAt)}` : ' · connecting'}${log.pending ? ` · ${log.pending} unsent` : ''}${log.error ? ` · ${log.error}` : ''}` : 'not logged in'}
+    intakeWarn={!!log.error || log.pending > 0} />;
   useEffect(() => applyLook(), []);
   const pager = useRef<HTMLDivElement>(null);
   // Where to land after a reload: the saved restore point, else the URL hash.
@@ -61,17 +70,17 @@ function App() {
   return <>
     <div className="top-cap" aria-hidden="true" />
     <div className="pager" ref={pager}>
-      <section className="page" aria-label="Dashboard"><Dashboard log={log} active={page === 0} onLog={() => goTo(1)} /></section>
-      <section className="page" aria-label="Log food and drink"><LogPage log={log} onDashboard={() => goTo(0)} /></section>
+      <section className="page" aria-label="Dashboard"><Dashboard log={log} official={official} footer={footer} active={page === 0} /></section>
+      <section className="page" aria-label="Log food and drink"><LogPage log={log} footer={footer} /></section>
     </div>
     <nav className="dots" aria-label="Pages">{['Dashboard', 'Log'].map((label, i) => <button key={label} aria-label={label} aria-current={page === i} onClick={() => goTo(i)} />)}</nav>
   </>;
 }
 
-function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLog: () => void }) {
+function Dashboard({ log, official, footer, active }: { log: RaceLog; official: ReturnType<typeof useOfficialLaps>; footer: ReactNode; active: boolean }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
-  const { snapshot, error } = useOfficialLaps();
+  const { snapshot } = official;
   const weather = useWeather();
   // Published times (Open-Meteo) when we have them; on-device calculation otherwise.
   const calc = nextSunEvents(now, KEILA.lat, KEILA.lng);
@@ -132,7 +141,6 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
   const tags: Record<number, string[]> = Object.fromEntries(Object.entries(records).filter(([, r]) => r.notes?.length).map(([yd, r]) => [Number(yd), [...new Set(r.notes!.map(n => noteTag(n.text)))]]));
   const loopsDone = clock.lapNumber - 1 + (laps.some(l => l.yard === clock.lapNumber) ? 1 : 0);
   const km = Math.max(0, loopsDone) * RACE.lapDistanceKm;
-  const lastEntry = Object.values(records).flatMap(r => r.intake ?? []).map(e => e.at).sort().pop();
   // Keep a permanent copy of each official lap in the crew log.
   useEffect(() => {
     if (!live || !snapshot) return;
@@ -140,7 +148,6 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
     const missing = snapshot.finishes.filter(f => !log.returns.some(r => r.yard === f.yard && r.source === 'official' && Date.parse(r.finish) === Date.parse(f.at)));
     if (missing.length && log.loadedAt) log.enqueue(...missing.map(f => ({ type: 'return' as const, row: { yard: f.yard, finish: f.at, lap_ms: f.lapMs, source: 'official' as const } })));
   }, [live, snapshot, log.returns, log.loadedAt]); // eslint-disable-line react-hooks/exhaustive-deps
-  const stale = snapshot ? now.getTime() - Date.parse(snapshot.checkedAt) > 5 * 60000 : true;
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -182,19 +189,12 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
       <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(2)} L</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="fluid" modern={modern} /></div>
     </section>}
 
-    <footer className="status">
-      <span className={error || stale ? 'warn' : undefined}>Laps: {snapshot ? `official feed ${clockTime(snapshot.checkedAt)}` : 'waiting for feed'}{error ? ` · ${error}` : ''}</span>
-      {live && <button className="import" onClick={onLog}>Log food &amp; drink →</button>}
-      <button className="import" onClick={refresh}>Refresh</button>
-      <button className="import" onClick={hardRefresh}>Hard refresh</button>
-      {live
-        ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: {log.liveLink ? 'live' : 'checking every 15 s'}{log.loadedAt ? ` · synced ${timeWithSeconds(log.loadedAt)}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
-        : <>
-          <span>Intake: {imported ? `imported ${clockTime(imported.importedAt)}${lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}` : 'none'}{importMessage ? ` · ${importMessage}` : ''}</span>
-          <label className="import">Import crew export<input type="file" accept=".json,application/json" onChange={onFile} /></label>
-          {log.authReady && <Login compact />}
-        </>}
-    </footer>
+    {!live && <div className="status">
+      <span>Intake: {imported ? `imported ${clockTime(imported.importedAt)}` : 'none'}{importMessage ? ` · ${importMessage}` : ''}</span>
+      <label className="import">Import crew export<input type="file" accept=".json,application/json" onChange={onFile} /></label>
+      {log.authReady && <Login compact />}
+    </div>}
+    {footer}
   </div>;
 }
 
