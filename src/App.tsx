@@ -145,12 +145,12 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <div className="stat">
         <span className="time-line">
-          <strong className="hero">{timeWithSeconds(now)}</strong>
+          <strong className="hero"><Digits text={timeWithSeconds(now)} /></strong>
           <span className="sun">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
           {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'} title="Keila">{Math.round(weather.tempC)}°</strong>}
         </span>
       </div>
-      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
+      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
     </header>
 
 
@@ -213,7 +213,7 @@ function FinalCountdown({ msToNext, yard }: { msToNext: number; yard: number }) 
   return <div className="final-countdown" role="timer" aria-live="off" onClick={() => setHiddenFor(yard)}>
     <div className="final-card">
       <span className="final-label">Yard {yard} starts in</span>
-      <strong className="final-number">{formatClock(msToNext)}</strong>
+      <strong className="final-number"><Digits text={formatClock(msToNext)} /></strong>
       <span className="final-hint">Tap to hide</span>
     </div>
   </div>;
@@ -226,6 +226,12 @@ function SunIcon({ rise }: { rise: boolean }) {
     <path d="M2 20h20M4.5 12.5l1.4 1.4M19.5 12.5l-1.4 1.4M12 7.5v1" />
     <path d={rise ? 'M12 1.5v5M9.5 4 12 1.5 14.5 4' : 'M12 1.5v5M9.5 4 12 6.5 14.5 4'} />
   </svg>;
+}
+
+/** Fixed-width digits: Poppins has no tabular figures, so each digit gets its
+ *  own equal slot and a ticking clock never shifts what is next to it. */
+function Digits({ text }: { text: string }) {
+  return <>{[...text].map((c, i) => <span key={i} className={/[0-9]/.test(c) ? 'dg' : 'dg-sep'}>{c}</span>)}</>;
 }
 
 export default App;
