@@ -1,7 +1,8 @@
 import { RACE } from '../data/raceConfig';
 import { zonedTimeToUtc } from './raceClock';
 export type IntakeEvent = { id: string; at: string; text: string; kind?: 'food' | 'drink'; drinkKind?: 'water' | 'varska' | '160' | '320' | 'arctic-greip' | 'arctic-apple' | 'oshee' | 'cido' | 'other'; ml?: number; carbsG?: number };
-export type YardRecord = { intake?: IntakeEvent[]; napChoice?: 'try' | 'skip'; finish?: string; finishSource?: 'manual' | 'official-lap'; officialLapMs?: number; preparation?: { food: string; bottle: string; extra: string }; checks: Record<string, boolean>; food: string; drink: string; gear: string; rest: string; note: string };
+export type YardNote = { id: string; at: string; text: string };
+export type YardRecord = { intake?: IntakeEvent[]; notes?: YardNote[]; napChoice?: 'try' | 'skip'; finish?: string; finishSource?: 'manual' | 'official-lap'; officialLapMs?: number; preparation?: { food: string; bottle: string; extra: string }; checks: Record<string, boolean>; food: string; drink: string; gear: string; rest: string; note: string };
 export const emptyYard = (): YardRecord => ({ checks: {}, food: '', drink: '', gear: '', rest: '', note: '' });
 export function yardStart(start: Date, yard: number) { return new Date(start.getTime() + (yard - 1) * RACE.lapWindowMin * 60000); }
 export function returnTimeForYard(start: Date, yard: number, time: string): Date | null {

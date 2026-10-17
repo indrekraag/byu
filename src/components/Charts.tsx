@@ -68,7 +68,7 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
   </g>)}</g>;
 }
 
-export function LapChart({ laps, yards, modern = false, extra = 0 }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number }) {
+export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
   const f: Frame = { w: 720, h: 258 + extra, l: 52, r: modern ? 96 : 74, t: 16, b: 32, yards };
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
@@ -88,6 +88,10 @@ export function LapChart({ laps, yards, modern = false, extra = 0 }: { laps: Lap
     {area && <path className="lap-area" d={area} />}
     <path className="lap-line" d={line} />
     {laps.map(p => <circle key={p.yard} className={p.source === 'official' ? 'lap-dot' : 'lap-dot manual'} cx={xOf(f, p.yard)} cy={y(p.lapMs / 60000)} r={modern && p !== last ? 4.5 : 6} />)}
+    {Object.entries(tags).map(([yd, list]) => list.slice(0, 3).map((t, i) => <g key={`${yd}-${t}`} className="note-tag">
+      <rect x={xOf(f, Number(yd)) - 25} y={f.h - f.b - 26 - i * 22} width={50} height={19} rx={9.5} />
+      <text x={xOf(f, Number(yd))} y={f.h - f.b - 12 - i * 22} textAnchor="middle">{t}</text>
+    </g>))}
     {last && (modern
       ? <Badge cls="badge-lap" x={Math.min(xOf(f, last.yard) + 14, f.w - f.r + 4)} y={y(last.lapMs / 60000)} text={formatClock(last.lapMs)} />
       : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}

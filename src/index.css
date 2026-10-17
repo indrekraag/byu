@@ -237,3 +237,22 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .log-sticky { position: -webkit-sticky; position: sticky; top: calc(-1 * var(--page-pad)); z-index: 4; background: var(--page); margin: calc(-1 * var(--page-pad)) -16px 10px; padding: var(--page-pad) 16px 8px; box-shadow: 0 10px 14px -12px rgba(0,0,0,.8); }
 .log-sticky .sync { margin: 6px 0 0; }
 .log-sticky .flash { margin: 8px 0 0; }
+
+/* Dashboard status strip: since-last, caffeine, field. */
+.strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.chip { background: var(--surface); border: 1px solid rgba(255,255,255,.05); border-radius: 999px; padding: 7px 14px; font-size: 17px; color: var(--text); }
+.chip b { color: var(--muted); font-weight: 500; margin-right: 4px; }
+.chip.late { color: #ff9d2e; border-color: rgba(255,157,46,.35); }
+.chip.ok { color: var(--fluid); }
+/* Note tags on the lap chart. */
+.note-tag rect { fill: #2c2d33; stroke: rgba(255,255,255,.12); }
+.note-tag text { fill: var(--text-2); font-size: 12.5px; font-weight: 600; }
+.yard-card-notes { margin: 0 0 8px; color: var(--text-2); font-size: 16px; }
+/* Log page: this yard's progress in the pinned card. */
+.progress { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; font-size: 16px; color: var(--text-2); }
+.progress b { color: var(--text); font-weight: 600; }
+.progress .bar { display: block; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.progress .fill { display: block; height: 100%; background: var(--lap); border-radius: 3px; }
+.progress .fill.ok { background: var(--fluid); }
+.row.four { grid-template-columns: repeat(4, 1fr); }
+.row.four .big-btn { font-size: 15px; padding: 12px 4px; }

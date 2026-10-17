@@ -1,5 +1,7 @@
 import { emptyYard, type IntakeEvent, type YardRecord } from './raceHQ';
 
+export const NOTE_PREFIX = 'note:';
+
 export type IntakeRow = { id: string; yard: number; at: string; kind: 'food' | 'drink' | null; drink_kind: string | null; ml: number | null; carbs_g: number | null; text: string; source: 'dashboard' | 'laura-app-import'; deleted_at: string | null };
 export type ReturnRow = { yard: number; finish: string; lap_ms: number | null; source: 'official' | 'manual' };
 
@@ -27,10 +29,12 @@ export function toRecords(intake: IntakeRow[], returns: ReturnRow[], outbox: Op[
   const yard = (n: number) => (records[n] ??= emptyYard());
   for (const r of rows.values()) {
     if (r.deleted_at) continue;
+    // Quick notes (stomach, feet, nap...) ride in the same table with no kind.
+    if (r.kind === null && r.text.startsWith(NOTE_PREFIX)) { (yard(r.yard).notes ??= []).push({ id: r.id, at: r.at, text: r.text.slice(NOTE_PREFIX.length) }); continue; }
     const event: IntakeEvent = { id: r.id, at: r.at, text: r.text, kind: r.kind ?? undefined, drinkKind: (r.drink_kind ?? undefined) as IntakeEvent['drinkKind'], ml: num(r.ml), carbsG: num(r.carbs_g) };
     (yard(r.yard).intake ??= []).push(event);
   }
-  for (const rec of Object.values(records)) rec.intake?.sort((a, b) => a.at.localeCompare(b.at));
+  for (const rec of Object.values(records)) { rec.intake?.sort((a, b) => a.at.localeCompare(b.at)); rec.notes?.sort((a, b) => a.at.localeCompare(b.at)); }
   for (const r of rets.values()) Object.assign(yard(r.yard), { finish: r.finish, finishSource: r.source === 'official' ? 'official-lap' : 'manual', officialLapMs: num(r.lap_ms) });
   return records;
 }

@@ -11,8 +11,11 @@ import { LogPage } from './pages/LogPage';
 import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
 import { hardRefresh, refresh } from './lib/refresh';
+import { caffeineStatus, sinceLast } from './lib/crewStatus';
+import { noteTag } from './data/foods';
 import { raceIntakeRecords, DRINKS, type DrinkKind } from './lib/intakeAdvice';
 
+const ago = (min: number | null) => min === null ? '—' : min < 60 ? `${min} min ago` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} ago`;
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
 
@@ -94,6 +97,9 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const totals = intake[intake.length - 1];
   // Distance covered: completed loops, counting the current one once she is back.
+  const since = sinceLast(records, start, now);
+  const caf = caffeineStatus(records, start, now);
+  const tags: Record<number, string[]> = Object.fromEntries(Object.entries(records).filter(([, r]) => r.notes?.length).map(([yd, r]) => [Number(yd), [...new Set(r.notes!.map(n => noteTag(n.text)))]]));
   const loopsDone = clock.lapNumber - 1 + (laps.some(l => l.yard === clock.lapNumber) ? 1 : 0);
   const km = Math.max(0, loopsDone) * RACE.lapDistanceKm;
   const lastEntry = Object.values(records).flatMap(r => r.intake ?? []).map(e => e.at).sort().pop();
@@ -121,9 +127,16 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
 
+    {started && <div className="strip">
+      <span className={since.carbsMin !== null && since.carbsMin > 60 ? 'chip late' : 'chip'}><b>Carbs</b> {ago(since.carbsMin)}</span>
+      <span className={since.drinkMin !== null && since.drinkMin > 60 ? 'chip late' : 'chip'}><b>Drink</b> {ago(since.drinkMin)}</span>
+      <span className={caf.state === 'due' ? 'chip late' : caf.state === 'ok' ? 'chip ok' : 'chip'}><b>Caffeine</b> {caf.state === 'before' ? 'from 22:00' : caf.state === 'wait' ? `next ${clockTime(caf.nextFrom.toISOString())}` : caf.state === 'ok' ? `ok now${caf.nextBy ? ` · by ${clockTime(caf.nextBy.toISOString())}` : ''}` : 'due'}{caf.total ? ` · ${caf.total} mg` : ''}</span>
+      {snapshot?.field && <span className="chip"><b>Field</b> {snapshot.field.stillIn} of {snapshot.field.total} in</span>}
+    </div>}
+
     <section className="panel">
       <h2>Lap time per yard <span className="unit">min · shaded = plan</span></h2>
-      <LapChart laps={laps} yards={yards} modern={modern} extra={Math.round(fill * 0.6 * svgScale)} />
+      <LapChart laps={laps} yards={yards} modern={modern} tags={tags} extra={Math.round(fill * 0.6 * svgScale)} />
     </section>
 
     <section className="panel">
@@ -162,6 +175,7 @@ function YardCard({ yard, records, start, onClose }: { yard: number; records: Re
   return <div className="yard-card" role="dialog" aria-label={`Yard ${yard} intake`} onClick={onClose}>
     <div className="yard-card-head"><strong>Yard {yard}</strong><span>{Math.round(carbs * 10) / 10} g{unknown ? ' + ?' : ''} · {ml} ml</span></div>
     {!events.length && <p className="muted">Nothing logged.</p>}
+    {!!records[yard]?.notes?.length && <p className="yard-card-notes">{records[yard].notes!.map(n => n.text).join(' · ')}</p>}
     <ul>{events.map(e => <li key={e.id}>
       <span className="when">{clockTime(e.at)}</span>
       <span className="what">{e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace('Ate prepared food: ', '')}</span>

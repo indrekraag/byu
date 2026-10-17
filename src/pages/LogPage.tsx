@@ -8,11 +8,12 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
-import { DRINK_AMOUNTS, FOODS, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
+import { DRINK_AMOUNTS, FOODS, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
-import type { EditPatch } from '../lib/raceLog';
+import { NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
+import { targetsForYard } from '../lib/yardTargets';
 
 const FOOD_PREFIX = 'Ate prepared food: ';
 const g = (v?: number) => v === undefined ? '?' : `${Math.round(v * 10) / 10}`;
@@ -46,6 +47,8 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const record = counted[yard];
   const totals = record ? yardIntake(record) : { carbs: 0, fluid: 0, incomplete: false };
   const entries = [...(record?.intake ?? [])].reverse();
+  const notes = [...(log.records[yard]?.notes ?? [])].reverse();
+  const target = targetsForYard(yard);
   const needsLabel = drink !== '' && DRINKS[drink].carbsPer500 === undefined;
   const labelOk = label === '' || (Number(label) >= 0 && Number(label) <= 100);
 
@@ -116,13 +119,17 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         </div>
         <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
       </header>
+      <div className="progress" aria-label={`Yard ${yard}: ${Math.round(totals.carbs)} grams of ${target.carbMin} to ${target.carbMax}`}>
+        <span><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> of {target.carbMin}–{target.carbMax} · <b>{totals.fluid} ml</b></span>
+        <span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span>
+      </div>
       <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
       {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
       {flash && <p className="flash" role="status">{flash}</p>}
     </div>
 
     <section className="card">
-      <h2>Yard {yard} so far <span className="total">{Math.round(totals.carbs)} g{totals.incomplete ? ' + ?' : ''} · {totals.fluid} ml</span></h2>
+      <h2>Return</h2>
       <div className="row"><button className="big-btn" disabled={!started} onClick={backNow}>{returned ? `Back: ${hhmm(returned)} · update` : 'She is back now'}</button></div>
     </section>
 
@@ -161,8 +168,14 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     </section>
 
     <section className="card">
+      <h2>Notes</h2>
+      <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>
+    </section>
+
+    <section className="card">
       <h2>Logged this yard</h2>
-      {!entries.length && <p className="muted">Nothing yet.</p>}
+      {!entries.length && !notes.length && <p className="muted">Nothing yet.</p>}
+      {notes.map(n => <div key={n.id} className="entry"><span>{hhmm(n.at)} · Note: {n.text}</span><span className="entry-actions"><button className="link" onClick={() => { add({ type: 'undo', id: n.id, at: new Date().toISOString() }); setFlash('Note removed.'); }}>Undo</button></span></div>)}
       {entries.map(e => editing === e.id
         ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
         : <div key={e.id} className="entry">
