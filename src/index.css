@@ -334,3 +334,13 @@ button.link, a.link { font-size: 15px; }
 .fold { display: flex; justify-content: space-between; align-items: center; width: 100%; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
 .fold span { color: var(--muted); font-size: 14px; }
 .big-btn.lap-bottle { background: #26272c; color: var(--text); border: 1px solid var(--fluid); }
+
+/* Charts wider than their card (past yard 12): scroll sideways, y labels pinned. */
+.chart-wrap { position: relative; }
+.chart-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
+.chart-scroll::-webkit-scrollbar { display: none; }
+.chart-scroll svg { display: block; height: auto; max-width: none; }
+.y-pin { position: absolute; left: 0; top: 0; height: auto; pointer-events: none; }
+.y-pin-bg { fill: var(--surface); }
+/* Three-digit km (from yard ~15) drops under the yard number instead of overflowing. */
+.yard-line { flex-wrap: wrap; row-gap: 0; }

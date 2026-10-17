@@ -1,3 +1,4 @@
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { IntakePoint, LapPoint } from '../lib/dashData';
 import { planBand } from '../lib/dashData';
 import { formatClock } from '../lib/raceClock';
@@ -7,6 +8,36 @@ import { formatClock } from '../lib/raceClock';
 // `modern` = the refined looks: smooth curves, soft area fills, pill bars in
 // tracks and a pill badge on the latest value. Off = the original look.
 type Frame = { w: number; h: number; l: number; r: number; t: number; b: number; yards: number };
+// Past VISIBLE yards a chart keeps its column width and grows wider than its
+// card; the card scrolls sideways (see ChartFrame).
+const VISIBLE = 12;
+function frame(base: number, h: number, l: number, r: number, t: number, b: number, yards: number): Frame {
+  const col = (base - l - r) / VISIBLE;
+  return { w: yards > VISIBLE ? l + r + col * yards : base, h, l, r, t, b, yards };
+}
+
+/** Renders a chart; when it is wider than its card, scrolls sideways with the
+ *  y-axis labels pinned, and follows the newest yard unless scrolled back. */
+function ChartFrame({ f, base, label, ticks, lo, hi, fmt, children }: { f: Frame; base: number; label: string; ticks: number[]; lo: number; hi: number; fmt: (v: number) => string; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  const follow = useRef(true);
+  const wide = f.w > base;
+  useEffect(() => {
+    const el = box.current;
+    if (el && wide && follow.current) el.scrollLeft = el.scrollWidth;
+  });
+  if (!wide) return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={label}>{children}</svg>;
+  return <div className="chart-wrap">
+    <div className="chart-scroll" ref={box} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8; }}>
+      <svg viewBox={`0 0 ${f.w} ${f.h}`} style={{ width: `${f.w / base * 100}%` }} role="img" aria-label={label}>{children}</svg>
+    </div>
+    <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} style={{ width: `${f.l / base * 100}%` }} aria-hidden="true">
+      <rect className="y-pin-bg" x="0" y="0" width={f.l} height={f.h} />
+      <g className="grid">{ticks.map(v => <text key={v} x={f.l - 8} y={yOf(f, v, lo, hi) + 6} textAnchor="end">{fmt(v)}</text>)}</g>
+    </svg>
+  </div>;
+}
+
 const xOf = (f: Frame, yard: number) => f.l + (yard - 0.5) * ((f.w - f.l - f.r) / f.yards);
 const colW = (f: Frame) => (f.w - f.l - f.r) / f.yards;
 const yOf = (f: Frame, v: number, lo: number, hi: number) => f.t + (1 - (v - lo) / (hi - lo)) * (f.h - f.t - f.b);
@@ -75,7 +106,7 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
 }
 
 export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
-  const f: Frame = { w: 720, h: 258 + extra, l: 52, r: modern ? 96 : 74, t: 16, b: 32, yards };
+  const f = frame(720, 258 + extra, 52, modern ? 96 : 74, 16, 32, yards);
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -84,7 +115,7 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
   const pts = laps.map(p => [xOf(f, p.yard), y(p.lapMs / 60000)] as [number, number]);
   const line = modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('');
   const area = modern && pts.length > 1 ? `${line}L${pts[pts.length - 1][0]},${f.h - f.b}L${pts[0][0]},${f.h - f.b}Z` : '';
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Lap time per yard against plan band">
+  return <ChartFrame f={f} base={720} label="Lap time per yard against plan band" ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`} />
     {Array.from({ length: yards }, (_, i) => i + 1).map(yard => { const b = planBand(yard); const top = y(b.maxMin), bottom = b.minMin === null ? f.h - f.b : y(b.minMin);
@@ -102,17 +133,17 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
       ? <Badge cls="badge-lap" x={Math.min(xOf(f, last.yard) + 14, f.w - f.r + 4)} y={y(last.lapMs / 60000)} text={formatClock(last.lapMs)} />
       : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}
     <YardAxis f={f} />
-  </svg>;
+  </ChartFrame>;
 }
 
 export function CarbsPerYard({ points, yards, modern = false, selected, onSelect, extra = 0 }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void; extra?: number }) {
-  const f: Frame = { w: 720, h: 196 + extra, l: 52, r: 74, t: modern ? 30 : 20, b: 32, yards };
+  const f = frame(720, 196 + extra, 52, 74, modern ? 30 : 20, 32, yards);
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
   const bw = modern ? Math.max(4, Math.min(44, colW(f) * 0.7)) : Math.max(4, colW(f) - 6);
   const band = points[0] ?? { carbMin: 50, carbMax: 60 };
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target">
+  return <ChartFrame f={f} base={720} label="Carbs per yard against 50 to 60 gram target" ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} rx={modern ? 4 : 0} />
@@ -130,11 +161,11 @@ export function CarbsPerYard({ points, yards, modern = false, selected, onSelect
     <YardAxis f={f} />
     {/* Tap targets: the whole column, bigger than the bar. */}
     {onSelect && points.map(p => <rect key={`hit${p.yard}`} className="hit" x={xOf(f, p.yard) - colW(f) / 2} y={f.t - 20} width={colW(f)} height={f.h - f.t + 20} onClick={() => onSelect(p.yard)} />)}
-  </svg>;
+  </ChartFrame>;
 }
 
 export function Cumulative({ points, yards, kind, modern = false }: { points: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid'; modern?: boolean }) {
-  const f: Frame = { w: 360, h: 186, l: 58, r: 16, t: 20, b: 32, yards };
+  const f = frame(360, 186, 58, 16, 20, 32, yards);
   const val = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbs : p.cumFluid / 1000;
   const lo = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMin : p.cumFluidMin / 1000;
   const hiB = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMax : p.cumFluidMax / 1000;
@@ -150,7 +181,7 @@ export function Cumulative({ points, yards, kind, modern = false }: { points: In
   const line = points.length ? (modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('')) : '';
   const area = modern && points.length ? `${line}L${pts[pts.length - 1][0]},${y(0)}L${startX},${y(0)}Z` : '';
   const last = points[points.length - 1];
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`Cumulative ${kind} against plan`}>
+  return <ChartFrame f={f} base={360} label={`Cumulative ${kind} against plan`} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <path className="band" d={band} />
@@ -158,5 +189,5 @@ export function Cumulative({ points, yards, kind, modern = false }: { points: In
     <path className={kind === 'carbs' ? 'cum-line carbs' : 'cum-line fluid'} d={line} />
     {last && <circle className={kind === 'carbs' ? 'cum-dot carbs' : 'cum-dot fluid'} cx={xEnd(last)} cy={y(val(last))} r={6} />}
     <YardAxis f={f} />
-  </svg>;
+  </ChartFrame>;
 }
