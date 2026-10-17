@@ -40,7 +40,7 @@ export function LogPage({ log, look, onLook, onDashboard }: { log: RaceLog; look
   const [flash, setFlash] = useState('');
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
 
-  const lookSwitch = <section className="card looks"><h2>Design option</h2><div className="row three">{LOOKS.map(l => <button key={l.id} className="big-btn secondary" aria-pressed={look === l.id} onClick={() => onLook(l.id)}>{l.label}</button>)}</div></section>;
+  const lookSwitch = <section className="card looks"><h2>Design option</h2><div className="row two">{LOOKS.map(l => <button key={l.id} className="big-btn secondary" aria-pressed={look === l.id} onClick={() => onLook(l.id)}>{l.label}</button>)}</div></section>;
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
   if (!log.session) return <div className="log"><Login />{lookSwitch}</div>;
 

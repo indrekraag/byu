@@ -1,13 +1,15 @@
-// Design looks under comparison on the real devices. ?look=board|sheet|default
+// Design looks under comparison on the real devices. ?look=charcoal|glass|fitness
 // switches and is remembered per device; the log page has the same switch.
-export type Look = 'default' | 'board' | 'sheet';
+export type Look = 'default' | 'charcoal' | 'glass' | 'fitness';
 export const LOOKS: { id: Look; label: string }[] = [
   { id: 'default', label: 'Current' },
-  { id: 'board', label: 'A · Timing board' },
-  { id: 'sheet', label: 'B · Crew sheet' },
+  { id: 'charcoal', label: '1 · Charcoal' },
+  { id: 'glass', label: '2 · Glass' },
+  { id: 'fitness', label: '3 · Fitness' },
 ];
 const KEY = 'byu-dash:look';
-const valid = (v: string | null): v is Look => v === 'default' || v === 'board' || v === 'sheet';
+const valid = (v: string | null): v is Look => LOOKS.some(l => l.id === v);
+const THEME: Record<Look, string> = { default: '#101112', charcoal: '#1b1c1f', glass: '#0b1024', fitness: '#000000' };
 
 export function initialLook(): Look {
   const fromUrl = new URLSearchParams(location.search).get('look');
@@ -17,6 +19,5 @@ export function initialLook(): Look {
 export function applyLook(look: Look) {
   document.documentElement.dataset.look = look;
   try { localStorage.setItem(KEY, look); } catch { /* per session */ }
-  const meta = document.querySelector('meta[name="theme-color"]');
-  meta?.setAttribute('content', look === 'sheet' ? '#2b2925' : look === 'board' ? '#070706' : '#101112');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME[look]);
 }

@@ -4,6 +4,8 @@ import { formatClock } from '../lib/raceClock';
 
 // Wall display: nobody touches it, so values are direct-labelled instead of
 // living in hover tooltips. All charts share the same yard x-scale.
+// `modern` = the refined looks: smooth curves, soft area fills, pill bars in
+// tracks and a pill badge on the latest value. Off = the original look.
 type Frame = { w: number; h: number; l: number; r: number; t: number; b: number; yards: number };
 const xOf = (f: Frame, yard: number) => f.l + (yard - 0.5) * ((f.w - f.l - f.r) / f.yards);
 const colW = (f: Frame) => (f.w - f.l - f.r) / f.yards;
@@ -13,6 +15,41 @@ function topRounded(x: number, y: number, w: number, h: number, r = 4) {
   if (h <= 0) return '';
   const rr = Math.min(r, w / 2, h);
   return `M${x},${y + h}V${y + rr}Q${x},${y} ${x + rr},${y}H${x + w - rr}Q${x + w},${y} ${x + w},${y + rr}V${y + h}Z`;
+}
+
+/** Monotone cubic (Fritsch–Carlson): smooth, but never overshoots a data point. */
+function smoothPath(pts: [number, number][]) {
+  if (pts.length < 3) return pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('');
+  const n = pts.length, d: number[] = [], m: number[] = [];
+  for (let i = 0; i < n - 1; i++) d.push((pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]));
+  m.push(d[0]);
+  for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2);
+  m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  let path = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], dx = (x1 - x0) / 3;
+    path += `C${x0 + dx},${y0 + m[i] * dx} ${x1 - dx},${y1 - m[i + 1] * dx} ${x1},${y1}`;
+  }
+  return path;
+}
+
+function Badge({ x, y, text, cls }: { x: number; y: number; text: string; cls: string }) {
+  const w = text.length * 12 + 20;
+  return <g className={`badge ${cls}`}><rect x={x} y={y - 16} width={w} height={32} rx={16} /><text x={x + w / 2} y={y + 7} textAnchor="middle">{text}</text></g>;
+}
+
+function Defs() {
+  return <defs>
+    <linearGradient id="g-lap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" className="stop-lap-a" /><stop offset="1" className="stop-lap-b" /></linearGradient>
+    <linearGradient id="g-carbs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" className="stop-carbs-a" /><stop offset="1" className="stop-carbs-b" /></linearGradient>
+    <linearGradient id="g-carbs-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" className="stop-carbs-area-a" /><stop offset="1" className="stop-area-b" /></linearGradient>
+    <linearGradient id="g-fluid-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" className="stop-fluid-area-a" /><stop offset="1" className="stop-area-b" /></linearGradient>
+  </defs>;
 }
 
 function YardAxis({ f }: { f: Frame }) {
@@ -31,49 +68,59 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
   </g>)}</g>;
 }
 
-export function LapChart({ laps, yards }: { laps: LapPoint[]; yards: number }) {
-  const f: Frame = { w: 720, h: 258, l: 52, r: 74, t: 16, b: 32, yards };
+export function LapChart({ laps, yards, modern = false }: { laps: LapPoint[]; yards: number; modern?: boolean }) {
+  const f: Frame = { w: 720, h: 258, l: 52, r: modern ? 96 : 74, t: 16, b: 32, yards };
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
   const y = (min: number) => yOf(f, min, lo, hi);
   const last = laps[laps.length - 1];
-  const path = laps.map((p, i) => `${i ? 'L' : 'M'}${xOf(f, p.yard)},${y(p.lapMs / 60000)}`).join('');
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Lap time per yard against plan band"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
+  const pts = laps.map(p => [xOf(f, p.yard), y(p.lapMs / 60000)] as [number, number]);
+  const line = modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('');
+  const area = modern && pts.length > 1 ? `${line}L${pts[pts.length - 1][0]},${f.h - f.b}L${pts[0][0]},${f.h - f.b}Z` : '';
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Lap time per yard against plan band">
+    <Defs />
     <Grid f={f} ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`} />
     {Array.from({ length: yards }, (_, i) => i + 1).map(yard => { const b = planBand(yard); const top = y(b.maxMin), bottom = b.minMin === null ? f.h - f.b : y(b.minMin);
       return <rect key={yard} className="band" x={xOf(f, yard) - colW(f) / 2} width={colW(f)} y={top} height={bottom - top} />; })}
     <line className="gun" x1={f.l} x2={f.w - f.r} y1={y(60)} y2={y(60)} />
     <text className="gun-label" x={f.w - f.r + 6} y={y(60) + 6}>start</text>
-    <path className="lap-line" d={path} />
-    {laps.map(p => <circle key={p.yard} className={p.source === 'official' ? 'lap-dot' : 'lap-dot manual'} cx={xOf(f, p.yard)} cy={y(p.lapMs / 60000)} r={6} />)}
-    {last && <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>}
+    {area && <path className="lap-area" d={area} />}
+    <path className="lap-line" d={line} />
+    {laps.map(p => <circle key={p.yard} className={p.source === 'official' ? 'lap-dot' : 'lap-dot manual'} cx={xOf(f, p.yard)} cy={y(p.lapMs / 60000)} r={modern && p !== last ? 4.5 : 6} />)}
+    {last && (modern
+      ? <Badge cls="badge-lap" x={Math.min(xOf(f, last.yard) + 14, f.w - f.r + 4)} y={y(last.lapMs / 60000)} text={formatClock(last.lapMs)} />
+      : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}
     <YardAxis f={f} />
   </svg>;
 }
 
-export function CarbsPerYard({ points, yards }: { points: IntakePoint[]; yards: number }) {
+export function CarbsPerYard({ points, yards, modern = false }: { points: IntakePoint[]; yards: number; modern?: boolean }) {
   const f: Frame = { w: 720, h: 196, l: 52, r: 74, t: 20, b: 32, yards };
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
-  const bw = Math.max(4, colW(f) - 6);
+  const bw = modern ? Math.max(4, Math.min(22, colW(f) * 0.42)) : Math.max(4, colW(f) - 6);
   const band = points[0] ?? { carbMin: 50, carbMax: 60 };
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target">
+    <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
-    <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} />
+    <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} rx={modern ? 4 : 0} />
     <text className="band-label" x={f.w - f.r + 6} y={y((band.carbMin + band.carbMax) / 2) + 6}>{band.carbMin}–{band.carbMax}</text>
-    {points.map(p => { const x = xOf(f, p.yard) - bw / 2;
+    {modern && Array.from({ length: yards }, (_, i) => i + 1).map(yd => <rect key={`t${yd}`} className="track" x={xOf(f, yd) - bw / 2} y={y(hi)} width={bw} height={y(0) - y(hi)} rx={bw / 2} />)}
+    {points.map(p => { const x = xOf(f, p.yard) - bw / 2; const top = y(p.carbs), height = y(0) - top;
       return <g key={p.yard} className={p.current ? 'current' : undefined}>
-        <path className="carb-bar" d={topRounded(x, y(p.carbs), bw, y(0) - y(p.carbs))} />
+        {modern
+          ? height > 0 && <rect className="carb-bar" x={x} y={top} width={bw} height={Math.max(height, bw)} rx={bw / 2} />
+          : <path className="carb-bar" d={topRounded(x, top, bw, height)} />}
         {!p.hasEntries && !p.current && <text className="muted-mark" x={xOf(f, p.yard)} y={y(0) - 8} textAnchor="middle">–</text>}
-        {p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={y(p.carbs) - 8} textAnchor="middle">?</text>}
+        {p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">?</text>}
       </g>; })}
     <YardAxis f={f} />
   </svg>;
 }
 
-export function Cumulative({ points, yards, kind }: { points: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid' }) {
+export function Cumulative({ points, yards, kind, modern = false }: { points: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid'; modern?: boolean }) {
   const f: Frame = { w: 360, h: 186, l: 58, r: 16, t: 20, b: 32, yards };
   const val = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbs : p.cumFluid / 1000;
   const lo = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMin : p.cumFluidMin / 1000;
@@ -86,11 +133,15 @@ export function Cumulative({ points, yards, kind }: { points: IntakePoint[]; yar
   const xEnd = (p: IntakePoint) => xOf(f, p.yard) + colW(f) / 2;
   const startX = f.l;
   const band = points.length ? `M${startX},${y(0)}` + points.map(p => `L${xEnd(p)},${y(hiB(p))}`).join('') + points.slice().reverse().map(p => `L${xEnd(p)},${y(lo(p))}`).join('') + 'Z' : '';
-  const line = points.length ? `M${startX},${y(0)}` + points.map(p => `L${xEnd(p)},${y(val(p))}`).join('') : '';
+  const pts: [number, number][] = [[startX, y(0)], ...points.map(p => [xEnd(p), y(val(p))] as [number, number])];
+  const line = points.length ? (modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('')) : '';
+  const area = modern && points.length ? `${line}L${pts[pts.length - 1][0]},${y(0)}L${startX},${y(0)}Z` : '';
   const last = points[points.length - 1];
-  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`Cumulative ${kind} against plan`}><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line className="hatch-line" x1="0" y1="0" x2="0" y2="8" /></pattern></defs>
-    <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => kind === 'carbs' ? `${v}` : `${v}`} />
+  return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={`Cumulative ${kind} against plan`}>
+    <Defs />
+    <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <path className="band" d={band} />
+    {area && <path className={kind === 'carbs' ? 'cum-area carbs' : 'cum-area fluid'} d={area} />}
     <path className={kind === 'carbs' ? 'cum-line carbs' : 'cum-line fluid'} d={line} />
     {last && <circle className={kind === 'carbs' ? 'cum-dot carbs' : 'cum-dot fluid'} cx={xEnd(last)} cy={y(val(last))} r={6} />}
     <YardAxis f={f} />

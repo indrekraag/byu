@@ -121,100 +121,129 @@ body { overflow: hidden; overscroll-behavior: none; }
 .top-cap::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; background: linear-gradient(var(--page), rgba(16, 17, 18, 0)); }
 button.import { background: none; font: inherit; color: var(--text); font-weight: 600; cursor: pointer; }
 
-/* ===================== Look A · Timing board =====================
-   The LED race clock in the timing tent: matte black casing, amber LEDs
-   with their unlit segments still faintly visible, dot-matrix charts.
-   Calm at night: one lit colour, red-orange only when slower than plan. */
-[data-look="board"] {
-  --page: #070706; --surface: #0d0c0a; --line: #26211a;
-  --text: #ffb21e; --text-2: #c98c1c; --muted: #8a6a2c; --warn: #ff6a3d;
-  --led: #ffb21e; --led-off: #1b160d; --led-band: #3d2e12; --led-hot: #ff5a2a;
-}
-[data-look="board"] body { font-family: "Barlow Semi Condensed", system-ui, sans-serif; font-weight: 500; }
-[data-look="board"] .stat, [data-look="board"] .panel, [data-look="board"] .card { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; }
-[data-look="board"] .label, [data-look="board"] .panel h2, [data-look="board"] .card h2 { font-family: Doto, monospace; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
-[data-look="board"] .label { font-size: 20px; }
-[data-look="board"] .panel h2 { font-size: 22px; }
-[data-look="board"] .total { font-family: Doto, monospace; font-weight: 700; color: var(--led); text-transform: none; }
-[data-look="board"] .hero-seg { display: block; height: min(72px, 9.2vw); width: auto; max-width: 100%; margin-top: 6px; }
-[data-look="board"] .seg-on { fill: var(--led); }
-[data-look="board"] .seg-off { fill: var(--led-off); }
-[data-look="board"] .dot.on { fill: var(--led); }
-[data-look="board"] .dot.hot { fill: var(--led-hot); }
-[data-look="board"] .dot.off { fill: var(--led-off); }
-[data-look="board"] .dot.band { fill: var(--led-band); }
-[data-look="board"] .dm-cursor { fill: none; stroke: var(--muted); stroke-width: 1; }
-[data-look="board"] svg text.dm-tick { fill: var(--muted); font-family: Doto, monospace; font-weight: 700; font-size: 17px; }
-[data-look="board"] svg text.dm-last { fill: var(--led); font-family: Doto, monospace; font-weight: 700; font-size: 24px; }
-[data-look="board"] svg text.dm-unknown { fill: var(--text-2); font-family: Doto, monospace; font-weight: 700; font-size: 20px; }
-[data-look="board"] .status { color: var(--muted); }
-[data-look="board"] .big-btn, [data-look="board"] .login button { background: #1a1711; color: var(--led); border: 1px solid #3a3122; border-radius: 3px; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; letter-spacing: .02em; }
-[data-look="board"] .big-btn:not(.secondary):not(:disabled) { background: var(--led); color: #140f05; border-color: var(--led); }
-[data-look="board"] .big-btn[aria-pressed="true"] { background: var(--led); color: #140f05; }
-[data-look="board"] input, [data-look="board"] select { background: #0a0908; border-color: #3a3122; color: var(--led); border-radius: 3px; }
-[data-look="board"] .yard-pick strong, [data-look="board"] .log-clock strong { font-family: Doto, monospace; font-weight: 700; color: var(--led); }
-[data-look="board"] .flash { background: #2a2010; color: var(--led); }
-[data-look="board"] .dots button { background: #2a2418; }
-[data-look="board"] .dots button[aria-current="true"] { background: var(--led); }
-[data-look="board"] ::selection { background: var(--led); color: #140f05; }
-
-/* ===================== Look B · Crew sheet =====================
-   The crew's clipboard lap sheet: a printed form on warm paper, figures in
-   black marker, charts in ballpoint on a faint rule, plan bands in pencil
-   hatching. The paper is dimmed for a dark room. */
-[data-look="sheet"] {
-  --page: #2b2925; --surface: #e4ddcf; --line: #c9c0ae;
-  --text: #1b1d22; --text-2: #3f3c36; --muted: #6c675d; --warn: #b3261e;
-  --ink: #233f9c; --ink-2: #2f6b4f; --pencil: #8f887b; --rule: rgba(60, 90, 160, .16);
-}
-[data-look="sheet"] body { font-family: "Barlow Condensed", system-ui, sans-serif; font-weight: 600; }
-[data-look="sheet"] .stat, [data-look="sheet"] .panel, [data-look="sheet"] .card {
-  background: var(--surface) repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--rule) 27px, var(--rule) 28px);
-  border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 14px rgba(0,0,0,.25); color: var(--text);
-}
-[data-look="sheet"] .label, [data-look="sheet"] .panel h2, [data-look="sheet"] .card h2 { font-family: "Barlow Condensed", sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); }
-[data-look="sheet"] .label { font-size: 19px; }
-[data-look="sheet"] .hero { font-family: "Permanent Marker", cursive; font-weight: 400; letter-spacing: 0; color: var(--text); }
-[data-look="sheet"] .total { font-family: "Permanent Marker", cursive; font-weight: 400; color: var(--text); text-transform: none; letter-spacing: 0; }
-[data-look="sheet"] .unit { color: var(--muted); text-transform: none; letter-spacing: 0; }
-[data-look="sheet"] svg text { fill: var(--text-2); font-family: Kalam, cursive; }
-[data-look="sheet"] .grid line { stroke: var(--rule); }
-[data-look="sheet"] .grid text { fill: var(--muted); }
-[data-look="sheet"] .axis line { stroke: var(--pencil); }
-[data-look="sheet"] .band { fill: url(#hatch); }
-[data-look="sheet"] .hatch-line { stroke: var(--pencil); stroke-width: 1.4; opacity: .55; }
-[data-look="sheet"] .gun { stroke: var(--text-2); }
-[data-look="sheet"] .lap-line { stroke: var(--ink); stroke-width: 2.5; }
-[data-look="sheet"] .lap-dot { fill: var(--ink); stroke: var(--surface); }
-[data-look="sheet"] .lap-dot.manual { fill: var(--surface); stroke: var(--ink); }
-[data-look="sheet"] .value-label { fill: var(--ink); font-family: "Permanent Marker", cursive; font-weight: 400; }
-[data-look="sheet"] .carb-bar { fill: var(--ink); opacity: .82; }
-[data-look="sheet"] .cum-line.carbs { stroke: var(--ink); }
-[data-look="sheet"] .cum-line.fluid { stroke: var(--ink-2); }
-[data-look="sheet"] .cum-dot.carbs { fill: var(--ink); stroke: var(--surface); }
-[data-look="sheet"] .cum-dot.fluid { fill: var(--ink-2); stroke: var(--surface); }
-[data-look="sheet"] .muted-mark { fill: var(--text-2); font-family: "Permanent Marker", cursive; }
-[data-look="sheet"] .status { color: #cfc8b9; }
-[data-look="sheet"] .status .warn { color: #ffb4a8; }
-[data-look="sheet"] .import, [data-look="sheet"] button.import { color: #ebe5d8; border-color: #5a554c; }
-[data-look="sheet"] .top-cap { background: var(--page); }
-[data-look="sheet"] .top-cap::after { background: linear-gradient(var(--page), rgba(43, 41, 37, 0)); }
-[data-look="sheet"] .big-btn, [data-look="sheet"] .login button { background: var(--text); color: #f1ece2; border-radius: 3px; font-family: "Barlow Condensed", sans-serif; font-weight: 600; letter-spacing: .03em; font-size: 21px; }
-[data-look="sheet"] .big-btn.secondary { background: transparent; color: var(--text); border: 1.5px solid var(--text-2); }
-[data-look="sheet"] .big-btn[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
-[data-look="sheet"] input, [data-look="sheet"] select { background: #f2ede3; color: var(--text); border-color: var(--pencil); border-radius: 2px; font-family: Kalam, cursive; }
-[data-look="sheet"] .yard-pick strong, [data-look="sheet"] .log-clock strong { font-family: "Permanent Marker", cursive; font-weight: 400; color: #f1ece2; }
-[data-look="sheet"] .log-head .label, [data-look="sheet"] .sync { color: #cfc8b9; }
-[data-look="sheet"] .yard-pick button { background: #3a3732; color: #f1ece2; border-color: #5a554c; }
-[data-look="sheet"] .entry { font-family: Kalam, cursive; border-color: var(--line); }
-[data-look="sheet"] .card .muted, [data-look="sheet"] button.link, [data-look="sheet"] a.link { color: var(--text-2); }
-[data-look="sheet"] .flash { background: #e9f0e1; color: #1d3b26; }
-[data-look="sheet"] .file-btn { color: var(--text-2); border-color: var(--pencil); }
-[data-look="sheet"] ::selection { background: var(--ink); color: #fff; }
-
 .looks .big-btn { font-size: 16px; padding: 12px 6px; }
 .log > .login:not(.compact) { background: var(--surface); padding: 14px; border-radius: 14px; margin-bottom: 12px; max-width: none; }
-[data-look="sheet"] .log > .login:not(.compact) { border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,.35), 0 6px 14px rgba(0,0,0,.25); color: var(--text); }
-[data-look="sheet"] .log > .login h2 { color: var(--text); font-family: "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .05em; }
-[data-look="board"] .log > .login:not(.compact) { border: 1px solid var(--line); border-radius: 3px; }
-[data-look="board"] .log > .login h2 { font-family: Doto, monospace; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+
+/* ============ Refined looks (shared chart grammar) ============
+   Smooth curves with a soft area fill, pill bars in quiet tracks, a pill
+   badge on the latest lap, hairline grid. Colours come from each look. */
+:root:not([data-look="default"]) .grid line { stroke: var(--grid); stroke-width: 1; }
+:root:not([data-look="default"]) .grid text, :root:not([data-look="default"]) .axis text { fill: var(--muted); font-size: 16px; }
+:root:not([data-look="default"]) .axis line { stroke: var(--grid); }
+:root:not([data-look="default"]) .band { fill: var(--band); }
+:root:not([data-look="default"]) .gun { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 7; }
+:root:not([data-look="default"]) .lap-line { stroke: var(--lap); stroke-width: 3; stroke-linecap: round; }
+:root:not([data-look="default"]) .lap-area { fill: url(#g-lap); }
+:root:not([data-look="default"]) .lap-dot { fill: var(--lap); stroke: var(--surface-solid); stroke-width: 2.5; }
+:root:not([data-look="default"]) .lap-dot.manual { fill: var(--surface-solid); stroke: var(--lap); }
+:root:not([data-look="default"]) .badge rect { fill: var(--lap); }
+:root:not([data-look="default"]) .badge text { fill: var(--on-accent); font-size: 18px; font-weight: 600; }
+:root:not([data-look="default"]) .track { fill: var(--track); }
+:root:not([data-look="default"]) .carb-bar { fill: url(#g-carbs); }
+:root:not([data-look="default"]) .current .carb-bar { opacity: .5; }
+:root:not([data-look="default"]) .cum-line { stroke-width: 3; stroke-linecap: round; }
+:root:not([data-look="default"]) .cum-line.carbs { stroke: var(--carbs-a); }
+:root:not([data-look="default"]) .cum-line.fluid { stroke: var(--fluid); }
+:root:not([data-look="default"]) .cum-area.carbs { fill: url(#g-carbs-area); }
+:root:not([data-look="default"]) .cum-area.fluid { fill: url(#g-fluid-area); }
+:root:not([data-look="default"]) .cum-dot { stroke: var(--surface-solid); stroke-width: 2.5; }
+:root:not([data-look="default"]) .cum-dot.carbs { fill: var(--carbs-a); }
+:root:not([data-look="default"]) .cum-dot.fluid { fill: var(--fluid); }
+.stop-lap-a { stop-color: var(--lap); stop-opacity: .32; }
+.stop-lap-b { stop-color: var(--lap); stop-opacity: 0; }
+.stop-carbs-a { stop-color: var(--carbs-a); }
+.stop-carbs-b { stop-color: var(--carbs-b); }
+.stop-carbs-area-a { stop-color: var(--carbs-a); stop-opacity: .28; }
+.stop-fluid-area-a { stop-color: var(--fluid); stop-opacity: .28; }
+.stop-area-b { stop-color: var(--surface-solid); stop-opacity: 0; }
+:root:not([data-look="default"]) .stat, :root:not([data-look="default"]) .panel, :root:not([data-look="default"]) .card { border-radius: var(--radius); }
+:root:not([data-look="default"]) .panel { padding: 14px 16px 6px; }
+:root:not([data-look="default"]) .panel h2 { margin: 0 0 4px 4px; }
+:root:not([data-look="default"]) .stat { padding: 12px 18px 10px; }
+:root:not([data-look="default"]) .hero { letter-spacing: -0.02em; }
+:root:not([data-look="default"]) .big-btn { border-radius: calc(var(--radius) * .6); }
+:root:not([data-look="default"]) input, :root:not([data-look="default"]) select { border-radius: calc(var(--radius) * .5); }
+
+/* ---- 1 · Charcoal: after the reference. Charcoal ground, lifted cards,
+   amber + mint, geometric sans. ---- */
+:root[data-look="charcoal"] {
+  --page: #1b1c1f; --surface: #25262b; --surface-solid: #25262b; --line: #34353b; --grid: rgba(255,255,255,.06);
+  --text: #f4f3ef; --text-2: #b7b6b0; --muted: #8b8a90; --warn: #f5a623;
+  --band: rgba(63, 208, 164, .10); --track: #2f3036; --on-accent: #1b1c1f; --radius: 22px;
+  --lap: #f5a623; --carbs-a: #f5a623; --carbs-b: #e3870f; --fluid: #3fd0a4;
+}
+[data-look="charcoal"] body { font-family: Poppins, system-ui, sans-serif; }
+[data-look="charcoal"] .stat, [data-look="charcoal"] .panel, [data-look="charcoal"] .card { background: var(--surface); box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 12px 28px rgba(0,0,0,.22); }
+[data-look="charcoal"] .label { font-size: 16px; font-weight: 500; color: var(--muted); }
+[data-look="charcoal"] .hero { font-weight: 600; }
+[data-look="charcoal"] .panel h2 { font-size: 20px; font-weight: 500; }
+[data-look="charcoal"] .unit { font-size: 15px; }
+[data-look="charcoal"] .total { font-weight: 600; color: var(--text); }
+[data-look="charcoal"] .big-btn { background: var(--lap); color: var(--on-accent); font-weight: 600; }
+[data-look="charcoal"] .big-btn.secondary { background: #2f3036; color: var(--text); border: 0; }
+[data-look="charcoal"] .big-btn[aria-pressed="true"], [data-look="charcoal"] .login button { background: var(--lap); color: var(--on-accent); }
+[data-look="charcoal"] .flash { background: rgba(63,208,164,.14); color: #bff3e2; }
+[data-look="charcoal"] .dots button[aria-current="true"] { background: var(--lap); }
+
+/* ---- 2 · Glass: Apple frosted glass. Translucent cards with a lit top
+   edge over a soft night wallpaper; SF with rounded figures. ---- */
+:root[data-look="glass"] {
+  --page: #0b1024; --surface: rgba(255,255,255,.075); --surface-solid: #1a2140; --line: rgba(255,255,255,.14); --grid: rgba(255,255,255,.07);
+  --text: #ffffff; --text-2: rgba(235,235,245,.72); --muted: rgba(235,235,245,.5); --warn: #ffd60a;
+  --band: rgba(255,255,255,.07); --track: rgba(255,255,255,.07); --on-accent: #1c1206; --radius: 26px;
+  --lap: #ff9f0a; --carbs-a: #ffd60a; --carbs-b: #ff9f0a; --fluid: #64d2ff;
+}
+[data-look="glass"] body {
+  font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  background:
+    radial-gradient(55% 35% at 12% 22%, rgba(94, 92, 230, .55), transparent 70%),
+    radial-gradient(45% 35% at 92% 40%, rgba(10, 132, 255, .38), transparent 70%),
+    radial-gradient(60% 40% at 40% 98%, rgba(48, 209, 158, .22), transparent 70%),
+    #0b1024;
+}
+[data-look="glass"] .stat, [data-look="glass"] .panel, [data-look="glass"] .card {
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 30px rgba(0,0,0,.28);
+  -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%);
+}
+[data-look="glass"] .hero, [data-look="glass"] .total, [data-look="glass"] .badge text { font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; font-weight: 700; }
+[data-look="glass"] .label { font-size: 16px; font-weight: 600; color: var(--muted); }
+[data-look="glass"] .panel h2 { font-size: 20px; font-weight: 600; }
+[data-look="glass"] .total { color: var(--text); }
+[data-look="glass"] .top-cap { background: #10163a; }
+[data-look="glass"] .top-cap::after { background: linear-gradient(#10163a, rgba(16,22,58,0)); }
+[data-look="glass"] .big-btn { background: var(--lap); color: var(--on-accent); }
+[data-look="glass"] .big-btn.secondary { background: rgba(255,255,255,.1); color: var(--text); border: 1px solid var(--line); }
+[data-look="glass"] .big-btn[aria-pressed="true"], [data-look="glass"] .login button { background: #fff; color: #0b1024; }
+[data-look="glass"] input, [data-look="glass"] select { background: rgba(0,0,0,.25); border-color: var(--line); }
+[data-look="glass"] .flash { background: rgba(48,209,158,.2); color: #d4fff0; }
+[data-look="glass"] .dots button { background: rgba(255,255,255,.25); }
+[data-look="glass"] .dots button[aria-current="true"] { background: #fff; }
+
+/* ---- 3 · Fitness: Apple Fitness / Health. True black, iOS grey cards,
+   bold rounded figures, one vivid colour per measure. ---- */
+:root[data-look="fitness"] {
+  --page: #000000; --surface: #1c1c1e; --surface-solid: #1c1c1e; --line: #2c2c2e; --grid: rgba(255,255,255,.08);
+  --text: #ffffff; --text-2: rgba(235,235,245,.68); --muted: #8e8e93; --warn: #ffd60a;
+  --band: rgba(255,255,255,.07); --track: #2c2c2e; --on-accent: #000; --radius: 18px;
+  --lap: #ff375f; --carbs-a: #b6ff3c; --carbs-b: #4cd964; --fluid: #00d4ff;
+}
+[data-look="fitness"] body { font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; }
+[data-look="fitness"] .stat, [data-look="fitness"] .panel, [data-look="fitness"] .card { background: var(--surface); }
+[data-look="fitness"] .hero, [data-look="fitness"] .total, [data-look="fitness"] .badge text { font-family: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif; font-weight: 800; }
+[data-look="fitness"] .label { font-size: 16px; font-weight: 600; color: var(--muted); }
+[data-look="fitness"] .panel h2 { font-size: 20px; font-weight: 700; }
+[data-look="fitness"] .panel:nth-of-type(1) h2 { color: var(--lap); }
+[data-look="fitness"] .panel:nth-of-type(2) h2, [data-look="fitness"] .pair .panel:first-child h2 { color: var(--carbs-a); }
+[data-look="fitness"] .pair .panel:last-child h2 { color: var(--fluid); }
+[data-look="fitness"] .panel h2 .total, [data-look="fitness"] .panel h2 .unit { color: var(--text); }
+[data-look="fitness"] .panel h2 .unit { color: var(--muted); }
+[data-look="fitness"] .big-btn { background: var(--carbs-a); color: #000; font-weight: 700; }
+[data-look="fitness"] .big-btn.secondary { background: #2c2c2e; color: var(--text); border: 0; }
+[data-look="fitness"] .big-btn[aria-pressed="true"], [data-look="fitness"] .login button { background: #fff; color: #000; }
+[data-look="fitness"] .flash { background: rgba(182,255,60,.14); color: #e6ffc2; }
+[data-look="fitness"] .dots button[aria-current="true"] { background: #fff; }
+:root:not([data-look="default"]) .label { line-height: 1.25; }
+[data-look="charcoal"] .stat { padding: 10px 18px 8px; }
+[data-look="charcoal"] .hero { line-height: 1.1; }
+[data-look="charcoal"] .panel h2 { line-height: 1.35; }
