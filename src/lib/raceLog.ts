@@ -1,6 +1,8 @@
 import { emptyYard, type IntakeEvent, type YardRecord } from './raceHQ';
 
 export const NOTE_PREFIX = 'note:';
+// Race-control events (e.g. 'event:finished') ride in the same table, no kind.
+export const EVENT_PREFIX = 'event:';
 
 export type IntakeRow = { id: string; yard: number; at: string; kind: 'food' | 'drink' | null; drink_kind: string | null; ml: number | null; carbs_g: number | null; text: string; source: 'dashboard' | 'laura-app-import'; deleted_at: string | null };
 export type ReturnRow = { yard: number; finish: string; lap_ms: number | null; source: 'official' | 'manual' };
@@ -29,6 +31,7 @@ export function toRecords(intake: IntakeRow[], returns: ReturnRow[], outbox: Op[
   const yard = (n: number) => (records[n] ??= emptyYard());
   for (const r of rows.values()) {
     if (r.deleted_at) continue;
+    if (r.kind === null && r.text.startsWith(EVENT_PREFIX)) continue;
     // Quick notes (stomach, feet, nap...) ride in the same table with no kind.
     if (r.kind === null && r.text.startsWith(NOTE_PREFIX)) { (yard(r.yard).notes ??= []).push({ id: r.id, at: r.at, text: r.text.slice(NOTE_PREFIX.length) }); continue; }
     const event: IntakeEvent = { id: r.id, at: r.at, text: r.text, kind: r.kind ?? undefined, drinkKind: (r.drink_kind ?? undefined) as IntakeEvent['drinkKind'], ml: num(r.ml), carbsG: num(r.carbs_g) };
@@ -56,4 +59,14 @@ export function rowsFromHQ(yards: Record<string, YardRecord>): { intake: IntakeR
     if (rec.finish) returns.push({ yard, finish: rec.finish, lap_ms: rec.officialLapMs ?? null, source: rec.finishSource === 'official-lap' ? 'official' : 'manual' });
   }
   return { intake, returns };
+}
+
+/** The race-finished event, if one is in force (the latest not undone). */
+export function finishedEvent(rows: IntakeRow[], outbox: Op[] = []): IntakeRow | null {
+  const all = new Map(rows.map(r => [r.id, r]));
+  for (const op of outbox) {
+    if (op.type === 'intake') all.set(op.row.id, op.row);
+    if (op.type === 'undo') { const r = all.get(op.id); if (r) all.set(op.id, { ...r, deleted_at: op.at }); }
+  }
+  return [...all.values()].filter(r => r.kind === null && r.text === `${EVENT_PREFIX}finished` && !r.deleted_at).sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
 }

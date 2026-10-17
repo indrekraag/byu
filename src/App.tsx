@@ -30,7 +30,7 @@ export type RaceLog = ReturnType<typeof useRaceLog>;
 // connection is shared so both pages never send the same outbox twice.
 function App() {
   const log = useRaceLog();
-  const official = useOfficialLaps();
+  const official = useOfficialLaps(!!log.finished);
   const sunWeather = useWeather();
   const sunriseNext = useMemo(() => { const now = new Date(); const pub = sunWeather?.sunrise?.map(v => new Date(v)).find(d => d.getTime() > now.getTime() - 20 * 60_000); return pub ?? nextSunEvents(now, KEILA.lat, KEILA.lng).sunrise; }, [sunWeather, Math.floor(Date.now() / 600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tick, setTick] = useState(() => Date.now());
@@ -72,7 +72,7 @@ function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <>
     <div className="top-cap" aria-hidden="true" />
-    <Moments log={log} snapshot={official.snapshot} sunrise={sunriseNext} />
+    {!log.finished && <Moments log={log} snapshot={official.snapshot} sunrise={sunriseNext} />}
     <div className="pager" ref={pager}>
       <section className="page" aria-label="Dashboard"><Dashboard log={log} official={official} footer={footer} active={page === 0} /></section>
       <section className="page" aria-label="Log food and drink"><LogPage log={log} footer={footer} /></section>
@@ -148,7 +148,10 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   // Distance covered: completed loops, counting the current one once she is back.
   const tags: Record<number, string[]> = Object.fromEntries(Object.entries(records).filter(([, r]) => r.notes?.length).map(([yd, r]) => [Number(yd), [...new Set(r.notes!.map(n => noteTag(n.text)))]]));
   const loopsDone = clock.lapNumber - 1 + (laps.some(l => l.yard === clock.lapNumber) ? 1 : 0);
-  const km = Math.max(0, loopsDone) * RACE.lapDistanceKm;
+  // After FINISH: the final count is the last yard she came back from.
+  const finishedAt = log.finished ? new Date(log.finished.at) : null;
+  const finalLoops = finishedAt ? Math.max(0, ...laps.filter(l => l.yard <= log.finished!.yard).map(l => l.yard)) : null;
+  const km = Math.max(0, finalLoops ?? loopsDone) * RACE.lapDistanceKm;
   // Keep a permanent copy of each official lap in the crew log.
   useEffect(() => {
     if (!live || !snapshot) return;
@@ -166,7 +169,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   }
 
   return <div className="dash" ref={dashRef}>
-    {started && active && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
+    {started && active && !log.finished && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
     {top === 'heroes' ? <>
     {/* Preview (?top=heroes): two hero cards, details in a strip below. */}
     <header className="stats heroes">
@@ -180,7 +183,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
     </div>
     </> : <>
     <header className={top === 'quiet' ? 'stats quiet' : top === 'big' ? 'stats quiet big' : 'stats'}>
-      <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
+      <div className="stat"><span className="label">{finalLoops !== null ? 'Yards' : started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{finalLoops !== null ? finalLoops : started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <span className="sep" aria-hidden="true" />
       <div className="stat">
         <span className="label spacer" aria-hidden="true">Time</span>
@@ -192,10 +195,12 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
         <span className="time-sub">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}{weather && <b className={weatherStale ? 'stale' : undefined}>{Math.round(weather.tempC)}°</b>}</span>
       </div>
       <span className="sep" aria-hidden="true" />
-      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
+      {finishedAt
+        ? <div className="stat finished"><span className="label">Finished</span><strong className="hero"><Digits text={clockTime(finishedAt.toISOString())} /></strong></div>
+        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
     </header>
     </>}
-    {started && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
+    {started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
 
 
     <section className="panel">

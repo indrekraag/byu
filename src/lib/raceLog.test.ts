@@ -47,3 +47,15 @@ describe('edits', () => {
     expect(recs[2].intake?.[0]).toMatchObject({ id: 'a', carbsG: 30 });
   });
 });
+
+describe('race finished event', async () => {
+  const { finishedEvent } = await import('./raceLog');
+  const ev = (id: string, extra: Partial<IntakeRow> = {}) => row(id, 9, { kind: null, text: 'event:finished', carbs_g: null, ml: null, ...extra });
+  it('is in force until undone, and stays out of intake and notes', () => {
+    expect(finishedEvent([ev('f')])?.id).toBe('f');
+    expect(finishedEvent([ev('f')], [{ type: 'undo', id: 'f', at: 'x' }])).toBeNull();
+    const recs = toRecords([ev('f')], []);
+    expect(recs[9]?.intake ?? []).toEqual([]);
+    expect(recs[9]?.notes ?? []).toEqual([]);
+  });
+});

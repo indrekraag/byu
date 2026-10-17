@@ -12,7 +12,7 @@ import { readJournal, readSnapshots, toCsv } from '../lib/backup';
 import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import type { IntakeEvent } from '../lib/raceHQ';
-import { NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
+import { EVENT_PREFIX, NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
 import { targetsForYard } from '../lib/yardTargets';
 
 const FOOD_PREFIX = 'Ate prepared food: ';
@@ -47,6 +47,10 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
   const [drinkMl, setDrinkMl] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  // Race control (FINISH): folded away; finishing needs FINISH typed in.
+  const [controlOpen, setControlOpen] = useState(false);
+  const [confirming, setConfirming] = useState<'finish' | 'resume' | null>(null);
+  const [typed, setTyped] = useState('');
   useEffect(() => { if (!flash) return; const id = setTimeout(() => { setFlash(''); setUndoId(null); }, 6000); return () => clearTimeout(id); }, [flash]);
 
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
@@ -164,6 +168,15 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
       </div>
       : <button key={f.id} className={`big-btn secondary${lit}`} disabled={!started} onClick={() => logFood(f)}>{f.label}{f.carbsG !== undefined ? <small>{g(f.carbsG)} g</small> : <small>carbs ?</small>}</button>;
   }
+  function finishRace() {
+    const lastBack = Math.max(0, ...Object.entries(log.records).filter(([, r]) => r.finish).map(([y]) => Number(y)));
+    add({ type: 'intake', row: { id: uuid(), yard: Math.max(1, lastBack || clock.lapNumber), at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${EVENT_PREFIX}finished`, source: 'dashboard', deleted_at: null } });
+    setConfirming(null); setTyped(''); setFlash('Race finished. Clocks and countdowns stopped on all devices.');
+  }
+  function resumeRace() {
+    if (log.finished) add({ type: 'undo', id: log.finished.id, at: new Date().toISOString() });
+    setConfirming(null); setTyped(''); setFlash('Race resumed.');
+  }
   function saveEdit(e: IntakeEvent, patch: EditPatch) {
     add({ type: 'edit', id: e.id, patch });
     setEditing(null);
@@ -264,6 +277,32 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
         <button className="link" disabled={!started} onClick={backNow}>{returned ? `Return ${hhmm(returned)} · set to now` : 'Log return now'}</button>
         <button className="link" onClick={() => void supabase.auth.signOut()}>Log out</button>
       </div>
+    </section>
+
+    <section className="race-control">
+      <button className="fold" aria-expanded={controlOpen} onClick={() => { setControlOpen(o => !o); setConfirming(null); setTyped(''); }}><span>Race control</span><span>{controlOpen ? 'Hide' : 'Show'}</span></button>
+      {controlOpen && <div className="race-control-body">
+        {!log.finished && confirming !== 'finish' && <button className="big-btn danger-outline" onClick={() => setConfirming('finish')}>Finish race…</button>}
+        {confirming === 'finish' && <div className="confirm">
+          <p><b>Finish the race now?</b> This stops the countdown, yard bar and pop-ups on every device and records the finish time. Logging still works for corrections.</p>
+          <label>Type FINISH to confirm<input value={typed} autoCapitalize="characters" autoComplete="off" onChange={e => setTyped(e.target.value)} /></label>
+          <div className="row two">
+            <button className="big-btn secondary" onClick={() => { setConfirming(null); setTyped(''); }}>Cancel</button>
+            <button className="big-btn danger" disabled={typed.trim().toUpperCase() !== 'FINISH'} onClick={finishRace}>Yes, finish race</button>
+          </div>
+        </div>}
+        {log.finished && confirming !== 'resume' && <>
+          <p className="muted">Finished at {hhmm(log.finished.at)}.</p>
+          <button className="big-btn secondary" onClick={() => setConfirming('resume')}>Resume race…</button>
+        </>}
+        {confirming === 'resume' && <div className="confirm">
+          <p><b>Resume the race?</b> Clocks and countdowns start again on every device.</p>
+          <div className="row two">
+            <button className="big-btn secondary" onClick={() => setConfirming(null)}>Cancel</button>
+            <button className="big-btn" onClick={resumeRace}>Yes, resume</button>
+          </div>
+        </div>}
+      </div>}
     </section>
 
     {footer}

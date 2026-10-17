@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react';
 import { fetchOfficialResults, type OfficialSnapshot } from '../lib/officialResults';
+import { computeLapClock, raceStartUtc } from '../lib/raceClock';
 
-// Laps change at most once an hour and Laura's own app polls the same
-// undocumented feed, so one check a minute is plenty for a wall display.
-const POLL_MS = 60_000;
+// Returns only happen late in each yard: check every 15 s from minute 42 until
+// the next start, every 2 minutes otherwise (raceresult asks for >= 10 s).
+const FAST_MS = 15_000;
+const SLOW_MS = 2 * 60_000;
+const FAST_FROM_MIN = 42;
+export function pollDelay(now = new Date()): number {
+  const clock = computeLapClock(raceStartUtc(), now);
+  if (now < raceStartUtc()) return SLOW_MS;
+  const intoYardMin = 60 - clock.msToNextLap / 60_000;
+  if (intoYardMin >= FAST_FROM_MIN) return FAST_MS;
+  // Sleep until the fast window opens, but never longer than the slow interval.
+  return Math.max(FAST_MS, Math.min(SLOW_MS, (FAST_FROM_MIN - intoYardMin) * 60_000));
+}
 const MAX_BACKOFF_MS = 10 * 60_000;
 const CACHE_KEY = 'byu-dash:official-snapshot:v1';
 
@@ -11,7 +22,7 @@ function cached(): OfficialSnapshot | null {
   try { const raw = localStorage.getItem(CACHE_KEY); return raw ? JSON.parse(raw) as OfficialSnapshot : null; } catch { return null; }
 }
 
-export function useOfficialLaps() {
+export function useOfficialLaps(stopped = false) {
   const [snapshot, setSnapshot] = useState<OfficialSnapshot | null>(cached);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -20,8 +31,8 @@ export function useOfficialLaps() {
     let failures = 0;
     let active: AbortController | null = null;
     async function check() {
-      if (cancelled) return;
-      if (document.hidden) { timer = setTimeout(check, POLL_MS); return; }
+      if (cancelled || stopped) return;
+      if (document.hidden) { timer = setTimeout(check, SLOW_MS); return; }
       active = new AbortController();
       const timeout = setTimeout(() => active?.abort(), 15_000);
       try {
@@ -36,7 +47,7 @@ export function useOfficialLaps() {
         setError(e instanceof Error && e.name !== 'AbortError' ? e.message : 'Timing feed did not answer.');
       } finally {
         clearTimeout(timeout);
-        if (!cancelled) timer = setTimeout(check, Math.min(MAX_BACKOFF_MS, POLL_MS * 2 ** failures));
+        if (!cancelled) timer = setTimeout(check, failures ? Math.min(MAX_BACKOFF_MS, SLOW_MS * 2 ** (failures - 1)) : pollDelay());
       }
     }
     void check();
@@ -44,6 +55,6 @@ export function useOfficialLaps() {
     document.addEventListener('visibilitychange', resume);
     window.addEventListener('online', resume);
     return () => { cancelled = true; active?.abort(); clearTimeout(timer); document.removeEventListener('visibilitychange', resume); window.removeEventListener('online', resume); };
-  }, []);
+  }, [stopped]);
   return { snapshot, error };
 }

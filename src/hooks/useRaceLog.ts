@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { toRecords, type IntakeRow, type Op, type ReturnRow } from '../lib/raceLog';
+import { finishedEvent, toRecords, type IntakeRow, type Op, type ReturnRow } from '../lib/raceLog';
 import { journal, missingOnServer, snapshot } from '../lib/backup';
 
 // Every change goes to a device-local outbox first and is sent from there, so
@@ -116,5 +116,6 @@ export function useRaceLog() {
   }, [flush]);
 
   const records = useMemo(() => toRecords(intake, returns, outbox), [intake, returns, outbox]);
-  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, liveLink, repaired, enqueue, reload: flush };
+  const finished = useMemo(() => finishedEvent(intake, outbox), [intake, outbox]);
+  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, liveLink, repaired, finished, enqueue, reload: flush };
 }

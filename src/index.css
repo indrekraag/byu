@@ -592,3 +592,15 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .behind-note { font-size: 14px; font-weight: 600; margin-left: 8px; color: #ff9d2e; }
 :root:not([data-look="default"]) .badge path { fill: var(--lap); }
 .note-tag line { stroke: rgba(255,255,255,.12); stroke-dasharray: 2 3; }
+
+/* Race control: folded away at the very bottom of the log page. */
+.race-control { margin: 4px 0 10px; padding: 0 2px; }
+.race-control .fold span { font-size: 13px; color: var(--muted); }
+.race-control-body { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
+.confirm { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid rgba(255, 90, 77, .45); border-radius: 14px; background: rgba(255, 90, 77, .07); }
+.confirm p { margin: 0; font-size: 14px; color: var(--text-2); }
+.confirm label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--text-2); }
+.log .big-btn.danger-outline { background: transparent; color: #ff8a7e; border: 1px solid rgba(255, 90, 77, .55); }
+.log .big-btn.danger { background: #d9453a; color: #fff; }
+.log .big-btn.danger:disabled { background: #3a2a29; color: var(--muted); }
+.stat.finished .hero { color: var(--ok); }
