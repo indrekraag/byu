@@ -388,3 +388,12 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .hero { font-size: min(52px, 6.8vw) !important; white-space: nowrap; letter-spacing: 0 !important; }
 .stats { grid-template-columns: 0.62fr 2.4fr 1fr; }
 .time-line { gap: 16px; }
+
+/* Log page: phone = one narrow column; iPad and wider = full width, two columns. */
+.log-cols { display: block; }
+@media (min-width: 700px) {
+  .log { max-width: 1024px; }
+  .log-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .log-cols > .card { margin-bottom: 10px; }
+  .log-sticky .log-head, .log-sticky .progress, .log-sticky .sync { max-width: none; }
+}

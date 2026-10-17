@@ -130,62 +130,65 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     </div>
 
 
-    <section className="card">
-      <h2>Drink</h2>
-      <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
-        <option value="">Choose drink</option>
-        {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
-      </select>
-      {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
-      <p className="portion-title">Lap bottle · water</p>
-      <div className="row four">{LAP_BOTTLE_AMOUNTS.map(ml => <button key={ml} className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(ml, 'water')}>{ml === 250 ? 'Full 250' : `${ml} ml`}</button>)}</div>
-      <p className="portion-title">Selected drink</p>
-      <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
-    </section>
-
-    <section className="card">
-      <h2>Food</h2>
-      <div className="row two">{FOODS.map(f => <button key={f.id} className="big-btn secondary" aria-expanded={f.portions || f.stepper ? picker?.id === f.id : undefined} disabled={!started} onClick={() => tapFood(f)}>{f.label}{f.carbsG !== undefined && !f.portions && !f.stepper ? ` · ${g(f.carbsG)} g` : ''}{f.portions || f.stepper ? ' …' : ''}</button>)}</div>
-      {picker && <div className="portion" role="group" aria-label={`How much ${picker.label}`}>
-        <p className="portion-title">{picker.label}: how much? {picker.estimate && <span className="muted">(≈ {g(picker.carbsG)} g each, estimate)</span>}</p>
-        {picker.portions && <div className="row three">{picker.portions.map(p => <button key={p.label} className="big-btn" onClick={() => addPortion(picker, p.factor)}>{p.label}<small>{g(portionOf(picker, p.factor).carbsG)} g</small></button>)}</div>}
-        {picker.stepper && <div className="row stepper">
-          <button className="big-btn secondary" disabled={step <= picker.stepper + 1e-9} onClick={() => setStep(v => Math.max(picker.stepper!, Math.round((v - picker.stepper!) * 10) / 10))}>−10%</button>
-          <span className="step-value">{Math.round(step * 100)}%<small>{g(portionOf(picker, step).carbsG)} g</small></span>
-          <button className="big-btn secondary" disabled={step >= 1} onClick={() => setStep(v => Math.min(1, Math.round((v + picker.stepper!) * 10) / 10))}>+10%</button>
-          <button className="big-btn" onClick={() => addPortion(picker, step)}>Add</button>
+    {/* Phone: one column. iPad and wider: two columns (see .log-cols). */}
+    <div className="log-cols">
+      <section className="card">
+        <h2>Drink</h2>
+        <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
+          <option value="">Choose drink</option>
+          {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
+        </select>
+        {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
+        <p className="portion-title">Lap bottle · water</p>
+        <div className="row four">{LAP_BOTTLE_AMOUNTS.map(ml => <button key={ml} className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(ml, 'water')}>{ml === 250 ? 'Full 250' : `${ml} ml`}</button>)}</div>
+        <p className="portion-title">Selected drink</p>
+        <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
+      </section>
+      <section className="card">
+        <h2>Food</h2>
+        <div className="row two">{FOODS.map(f => <button key={f.id} className="big-btn secondary" aria-expanded={f.portions || f.stepper ? picker?.id === f.id : undefined} disabled={!started} onClick={() => tapFood(f)}>{f.label}{f.carbsG !== undefined && !f.portions && !f.stepper ? ` · ${g(f.carbsG)} g` : ''}{f.portions || f.stepper ? ' …' : ''}</button>)}</div>
+        {picker && <div className="portion" role="group" aria-label={`How much ${picker.label}`}>
+          <p className="portion-title">{picker.label}: how much? {picker.estimate && <span className="muted">(≈ {g(picker.carbsG)} g each, estimate)</span>}</p>
+          {picker.portions && <div className="row three">{picker.portions.map(p => <button key={p.label} className="big-btn" onClick={() => addPortion(picker, p.factor)}>{p.label}<small>{g(portionOf(picker, p.factor).carbsG)} g</small></button>)}</div>}
+          {picker.stepper && <div className="row stepper">
+            <button className="big-btn secondary" disabled={step <= picker.stepper + 1e-9} onClick={() => setStep(v => Math.max(picker.stepper!, Math.round((v - picker.stepper!) * 10) / 10))}>−10%</button>
+            <span className="step-value">{Math.round(step * 100)}%<small>{g(portionOf(picker, step).carbsG)} g</small></span>
+            <button className="big-btn secondary" disabled={step >= 1} onClick={() => setStep(v => Math.min(1, Math.round((v + picker.stepper!) * 10) / 10))}>+10%</button>
+            <button className="big-btn" onClick={() => addPortion(picker, step)}>Add</button>
+          </div>}
         </div>}
-      </div>}
-      {recentCustom.length > 0 && <>
-        <p className="portion-title">Earlier today</p>
-        <div className="row two">{recentCustom.map(r => <button key={r.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(r.text, r.carbsG)}>{r.text}{r.carbsG !== undefined ? ` · ${g(r.carbsG)} g` : ''}</button>)}</div>
-      </>}
-      <div className="row custom">
-        <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
-        <input type="number" inputMode="decimal" min="0" placeholder="g carbs" value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
-        <button className="big-btn secondary" disabled={!started || !foodText.trim()} onClick={() => { addFood(foodText.trim(), foodCarbs === '' ? undefined : Number(foodCarbs)); setFoodText(''); setFoodCarbs(''); }}>Add</button>
-      </div>
-    </section>
+        {recentCustom.length > 0 && <>
+          <p className="portion-title">Earlier today</p>
+          <div className="row two">{recentCustom.map(r => <button key={r.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(r.text, r.carbsG)}>{r.text}{r.carbsG !== undefined ? ` · ${g(r.carbsG)} g` : ''}</button>)}</div>
+        </>}
+        <div className="row custom">
+          <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
+          <input type="number" inputMode="decimal" min="0" placeholder="g carbs" value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
+          <button className="big-btn secondary" disabled={!started || !foodText.trim()} onClick={() => { addFood(foodText.trim(), foodCarbs === '' ? undefined : Number(foodCarbs)); setFoodText(''); setFoodCarbs(''); }}>Add</button>
+        </div>
+      </section>
+    </div>
 
-    <section className="card">
-      <button className="fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(o => !o)}><h2>Notes</h2><span>{notesOpen ? 'Hide' : 'Show'}</span></button>
-      {notesOpen && <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>}
-    </section>
-
-    <section className="card">
-      <h2>Logged this yard</h2>
-      {!entries.length && !notes.length && <p className="muted">Nothing yet.</p>}
-      {notes.map(n => <div key={n.id} className="entry"><span>{hhmm(n.at)} · Note: {n.text}</span><span className="entry-actions"><button className="link" onClick={() => { add({ type: 'undo', id: n.id, at: new Date().toISOString() }); setFlash('Note removed.'); }}>Undo</button></span></div>)}
-      {entries.map(e => editing === e.id
-        ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
-        : <div key={e.id} className="entry">
-          <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace(FOOD_PREFIX, '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${g(e.carbsG)} g`}</span>
-          <span className="entry-actions">
-            <button className="link" onClick={() => setEditing(e.id)}>Edit</button>
-            <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
-          </span>
-        </div>)}
-    </section>
+    <div className="log-cols">
+      <section className="card">
+        <h2>Logged this yard</h2>
+        {!entries.length && !notes.length && <p className="muted">Nothing yet.</p>}
+        {notes.map(n => <div key={n.id} className="entry"><span>{hhmm(n.at)} · Note: {n.text}</span><span className="entry-actions"><button className="link" onClick={() => { add({ type: 'undo', id: n.id, at: new Date().toISOString() }); setFlash('Note removed.'); }}>Undo</button></span></div>)}
+        {entries.map(e => editing === e.id
+          ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
+          : <div key={e.id} className="entry">
+            <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace(FOOD_PREFIX, '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${g(e.carbsG)} g`}</span>
+            <span className="entry-actions">
+              <button className="link" onClick={() => setEditing(e.id)}>Edit</button>
+              <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
+            </span>
+          </div>)}
+      </section>
+      <section className="card">
+        <button className="fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(o => !o)}><h2>Notes</h2><span>{notesOpen ? 'Hide' : 'Show'}</span></button>
+        {notesOpen && <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>}
+      </section>
+    </div>
 
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
