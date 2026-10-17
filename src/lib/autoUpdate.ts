@@ -3,7 +3,7 @@
 // home-screen app can hold it longer; ask for it uncached instead, and reload
 // when it points at a different build. Data is safe: it lives in Supabase and
 // the phone's outbox, not in the page.
-const CHECK_MS = 5 * 60_000;
+const CHECK_MS = 2 * 60_000;
 
 function currentBuild(): string | null {
   return document.querySelector<HTMLScriptElement>('script[type="module"][src*="/assets/"]')?.getAttribute('src') ?? null;
