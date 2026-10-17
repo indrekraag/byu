@@ -81,8 +81,8 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot } = official;
-  // Top row: 'quiet' (default since 2026-10-17); ?top=current or ?top=heroes to compare (remembered per device).
-  const [top] = useState(() => { try { const q = new URLSearchParams(location.search).get('top'); if (q) localStorage.setItem('byu-dash:top', q); return localStorage.getItem('byu-dash:top') || 'quiet'; } catch { return 'quiet'; } });
+  // Top row: 'big' (default since 2026-10-17); ?top=quiet, ?top=current or ?top=heroes to compare (remembered per device).
+  const [top] = useState(() => { try { const q = new URLSearchParams(location.search).get('top'); if (q) localStorage.setItem('byu-dash:top', q); return localStorage.getItem('byu-dash:top') || 'big'; } catch { return 'big'; } });
   const weather = useWeather();
   // Published times (Open-Meteo) when we have them; on-device calculation otherwise.
   const calc = nextSunEvents(now, KEILA.lat, KEILA.lng);
