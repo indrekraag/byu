@@ -401,3 +401,11 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
   .log-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .log-cols select { width: 100%; min-width: 0; }
 }
+
+/* Log page buttons: smaller type so whole names fit (owner, 2026-10-17). */
+.log .big-btn { font-size: 14px; padding: 9px 8px; line-height: 1.25; font-weight: 600; }
+.log .row.four .big-btn { font-size: 13px; padding: 8px 4px; }
+.log .big-btn small { font-size: 11px; }
+.log .card h2 { font-size: 16px; }
+.log .portion-title { font-size: 13px; }
+.log .entry { font-size: 14px; }
