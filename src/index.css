@@ -626,3 +626,25 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .hero-panel .yardbar { margin: 0; }
 .hero-panel .yardbar-track { height: 6px; border-radius: 0; background: rgba(255,255,255,.05); }
 .hero-panel .yb-loop { border-radius: 0; }
+
+/* Full-screen clock (tap Next start). */
+.stat.tappable { cursor: pointer; }
+.fullclock { z-index: 45; }
+.fullclock-inner { display: flex; flex-direction: column; align-items: center; gap: 22px; width: min(720px, 94vw); -webkit-animation: fc-spring .55s cubic-bezier(.2, 1.3, .35, 1) both; animation: fc-spring .55s cubic-bezier(.2, 1.3, .35, 1) both; }
+.fc-yard { font-size: 22px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); }
+.fc-figures { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.fc-figures > div { display: flex; flex-direction: column; align-items: center; }
+.fc-label { font-size: 15px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.fc-num { font-size: min(150px, 19vw); line-height: 1; font-weight: 700; letter-spacing: 0; color: var(--text); }
+.fc-num.calm { color: var(--ok); }
+.fc-num.countdown.soon { text-shadow: 0 0 40px rgba(255, 157, 46, .35); }
+.fc-num.countdown.final { text-shadow: 0 0 48px rgba(255, 77, 61, .5); }
+.fc-bar { width: 100%; }
+.fc-track { position: relative; height: 16px; border-radius: 8px; background: rgba(255,255,255,.08); overflow: hidden; }
+.fc-track > span { position: absolute; top: 0; bottom: 0; }
+.fc-window { background: rgba(67, 214, 170, .28); }
+.fc-loop { left: 0; background: var(--lap); opacity: .9; }
+.fc-rest { background: var(--ok); }
+.fc-now { width: 3px; margin-left: -1.5px; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,.7); }
+.fc-scale { position: relative; display: flex; justify-content: space-between; margin-top: 8px; font-size: 17px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fc-win-label { position: absolute; transform: translateX(-50%); color: var(--ok); font-weight: 600; white-space: nowrap; }

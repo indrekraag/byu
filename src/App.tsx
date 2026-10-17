@@ -93,6 +93,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const sunFirst = sun.sunrise < sun.sunset ? [['Sunrise', sun.sunrise], ['Sunset', sun.sunset]] as const : [['Sunset', sun.sunset], ['Sunrise', sun.sunrise]] as const;
   const weatherStale = weather ? now.getTime() - Date.parse(weather.at) > 45 * 60000 : true;
   const [picked, setPicked] = useState<number | null>(null);
+  const [fullClock, setFullClock] = useState(false);
   // Fill the screen: give spare height to the lap (30%) and carbs (70%)
   // charts instead of leaving an empty band at the bottom.
   const dashRef = useRef<HTMLDivElement>(null);
@@ -167,6 +168,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   }
 
   return <div className="dash" ref={dashRef}>
+    {fullClock && started && !log.finished && <FullClock now={now} clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} onClose={() => setFullClock(false)} />}
     {started && active && !log.finished && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
     {/* Top: one hero card (yard · time with sun + temperature · next start), the yard bar as its bottom edge. */}
     <div className="hero-panel">
@@ -185,7 +187,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       <span className="sep" aria-hidden="true" />
       {finishedAt
         ? <div className="stat finished"><span className="label">Finished</span><strong className="hero"><Digits text={clockTime(finishedAt.toISOString())} /></strong></div>
-        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
+        : <div className="stat tappable" role="button" tabIndex={0} aria-label="Full-screen clock" onClick={() => started && setFullClock(true)}><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
     </header>
     {started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
     </div>
@@ -278,6 +280,42 @@ function YardBar({ clock, lap }: { clock: ReturnType<typeof computeLapClock>; la
       <span className="yb-loop" style={{ width: pct(loopEnd) }} />
       {lap && <span className="yb-rest" style={{ left: pct(lap.lapMs), width: pct(Math.max(0, elapsed - lap.lapMs)) }} />}
       <span className="yb-now" style={{ left: pct(elapsed) }} />
+    </div>
+  </div>;
+}
+
+/** Full-screen clock (tap Next start): time and next start very large over a
+ *  blurred dashboard, with the hour as a bar: her expected return window
+ *  (plan band), now, and her actual return once it is in. Tap to go back. */
+function FullClock({ now, clock, lap, onClose }: { now: Date; clock: ReturnType<typeof computeLapClock>; lap?: { lapMs: number }; onClose: () => void }) {
+  const hour = RACE.lapWindowMin * 60_000;
+  const yardStartMs = now.getTime() - (hour - clock.msToNextLap);
+  const elapsed = hour - clock.msToNextLap;
+  const band = planBand(clock.lapNumber);
+  const winFrom = (band.minMin ?? band.maxMin - 2) * 60_000, winTo = band.maxMin * 60_000;
+  const pct = (ms: number) => `${Math.max(0, Math.min(100, ms / hour * 100))}%`;
+  const at = (ms: number) => clockTime(new Date(yardStartMs + ms).toISOString());
+  return <div className="final-countdown fullclock" role="dialog" aria-label="Full-screen clock" onClick={onClose}>
+    <div className="fullclock-inner">
+      <span className="fc-yard">Yard {clock.lapNumber}</span>
+      <div className="fc-figures">
+        <div><span className="fc-label">Time</span><strong className="fc-num"><Digits text={timeWithSeconds(now)} /></strong></div>
+        <div><span className="fc-label">Next start</span><strong className={`fc-num ${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}`}><Digits text={formatClock(clock.msToNextLap)} /></strong></div>
+      </div>
+      <div className="fc-bar">
+        <div className="fc-track">
+          <span className="fc-window" style={{ left: pct(winFrom), width: pct(winTo - winFrom) }} />
+          <span className="fc-loop" style={{ width: pct(lap ? lap.lapMs : elapsed) }} />
+          {lap && <span className="fc-rest" style={{ left: pct(lap.lapMs), width: pct(Math.max(0, elapsed - lap.lapMs)) }} />}
+          <span className="fc-now" style={{ left: pct(elapsed) }} />
+        </div>
+        <div className="fc-scale">
+          <span>{at(0)}</span>
+          <span className="fc-win-label" style={{ left: pct((winFrom + winTo) / 2) }}>{lap ? `back ${at(lap.lapMs)}` : `return ~${at(winFrom)}–${at(winTo)}`}</span>
+          <span>{at(hour)}</span>
+        </div>
+      </div>
+      <span className="final-hint">Tap anywhere to go back</span>
     </div>
   </div>;
 }
