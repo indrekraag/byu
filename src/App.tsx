@@ -182,8 +182,9 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       {weather && <span className={weatherStale ? 'stale' : undefined}><b>{Math.round(weather.tempC)}°</b> Keila</span>}
     </div>
     </> : <>
-    <header className={top === 'quiet' ? 'stats quiet' : top === 'big' ? 'stats quiet big' : 'stats'}>
-      <div className="stat"><span className="label">{finalLoops !== null ? 'Yards' : started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{finalLoops !== null ? finalLoops : started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
+    <div className={top === 'card' ? 'hero-panel' : 'hero-plain'}>
+    <header className={top === 'quiet' ? 'stats quiet' : top === 'big' ? 'stats quiet big' : top === 'card' ? 'stats quiet big carded' : 'stats'}>
+      <div className="stat"><span className="label">{finalLoops !== null ? 'Yards' : started ? 'Yard' : 'Starts'}</span><span className="yard-line">{top === 'card' && started && !finishedAt && <YardRing progress={1 - clock.msToNextLap / (RACE.lapWindowMin * 60_000)} />}<strong className="hero">{finalLoops !== null ? finalLoops : started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <span className="sep" aria-hidden="true" />
       <div className="stat">
         <span className="label spacer" aria-hidden="true">Time</span>
@@ -197,10 +198,12 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       <span className="sep" aria-hidden="true" />
       {finishedAt
         ? <div className="stat finished"><span className="label">Finished</span><strong className="hero"><Digits text={clockTime(finishedAt.toISOString())} /></strong></div>
-        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
+        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}${top === 'card' && clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
     </header>
+    {top === 'card' && started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
+    </div>
     </>}
-    {started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
+    {top !== 'card' && started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
 
 
     <section className="panel">
@@ -292,6 +295,15 @@ function YardBar({ clock, lap }: { clock: ReturnType<typeof computeLapClock>; la
       <span className="yb-now" style={{ left: pct(elapsed) }} />
     </div>
   </div>;
+}
+
+/** Thin progress ring behind the yard number: how far into this yard we are. */
+function YardRing({ progress }: { progress: number }) {
+  const r = 44, c = 2 * Math.PI * r, p = Math.max(0, Math.min(1, progress));
+  return <svg className="yard-ring" viewBox="0 0 100 100" aria-hidden="true">
+    <circle cx="50" cy="50" r={r} className="ring-track" />
+    <circle cx="50" cy="50" r={r} className="ring-fill" strokeDasharray={`${c * p} ${c}`} transform="rotate(-90 50 50)" />
+  </svg>;
 }
 
 export default App;

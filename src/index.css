@@ -604,3 +604,25 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .log .big-btn.danger { background: #d9453a; color: #fff; }
 .log .big-btn.danger:disabled { background: #3a2a29; color: var(--muted); }
 .stat.finished .hero { color: var(--ok); }
+
+/* ---- Hero card preview (?top=card): the top row in the page's card language ---- */
+.hero-plain { display: contents; }
+.hero-panel { position: relative; margin-bottom: 10px; border-radius: 22px; overflow: hidden;
+  background: linear-gradient(180deg, #24252b 0%, #1d1e23 100%); border: 1px solid rgba(255,255,255,.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 14px 32px rgba(0,0,0,.35); }
+.hero-panel .stats.carded { margin: 0; padding: 14px 6px 12px; }
+.stats.carded > .sep { background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.16), rgba(255,255,255,0)); margin: 4px 0; }
+.stats.carded .label { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stats.carded .hero { font-weight: 700; }
+.stats.carded .hero.calm { color: var(--ok); }
+.stats.carded .countdown.final { text-shadow: 0 0 28px rgba(255, 77, 61, .45); }
+.stats.carded .countdown.soon { text-shadow: 0 0 24px rgba(255, 157, 46, .30); }
+/* Yard number sits inside a thin progress ring (silver = into this yard). */
+.stats.carded .yard-line { position: relative; }
+.yard-ring { position: absolute; left: 50%; top: 50%; width: min(104px, 13.5vw); height: min(104px, 13.5vw); transform: translate(-50%, -62%); pointer-events: none; }
+.ring-track { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 4; }
+.ring-fill { fill: none; stroke: var(--lap); stroke-width: 4; stroke-linecap: round; opacity: .85; }
+/* Yard bar becomes the card's bottom edge. */
+.hero-panel .yardbar { margin: 0; }
+.hero-panel .yardbar-track { height: 6px; border-radius: 0; background: rgba(255,255,255,.05); }
+.hero-panel .yb-loop { border-radius: 0; }
