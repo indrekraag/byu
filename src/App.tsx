@@ -176,6 +176,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
     <header className={top === 'quiet' ? 'stats quiet' : 'stats'}>
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <div className="stat">
+        <span className="label spacer" aria-hidden="true">Time</span>
         <span className="time-line">
           <strong className="hero"><Digits text={timeWithSeconds(now)} /></strong>
           <span className="sun">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
