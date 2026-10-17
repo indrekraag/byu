@@ -12,6 +12,9 @@ import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
 import { hardRefresh, refresh } from './lib/refresh';
 import { caffeineStatus, sinceLast } from './lib/crewStatus';
+import { useWeather } from './hooks/useWeather';
+import { nextSunEvents } from './lib/sun';
+import { KEILA } from './lib/weather';
 import { noteTag } from './data/foods';
 import { raceIntakeRecords, DRINKS, type DrinkKind } from './lib/intakeAdvice';
 
@@ -60,6 +63,10 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
+  const weather = useWeather();
+  const sun = nextSunEvents(now, KEILA.lat, KEILA.lng);
+  const sunFirst = sun.sunrise < sun.sunset ? [['Sunrise', sun.sunrise], ['Sunset', sun.sunset]] as const : [['Sunset', sun.sunset], ['Sunrise', sun.sunrise]] as const;
+  const weatherStale = weather ? now.getTime() - Date.parse(weather.at) > 45 * 60000 : true;
   const [picked, setPicked] = useState<number | null>(null);
   // Fill the screen: give spare height to the lap (60%) and carbs (40%)
   // charts instead of leaving an empty band at the bottom.
@@ -131,7 +138,9 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   return <div className="dash" ref={dashRef}>
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
-      <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
+      <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong>
+        <span className="sub-line">{weather && <span className={weatherStale ? 'temp stale' : 'temp'}>{Math.round(weather.tempC)} °C</span>}{sunFirst.map(([name, at]) => <span key={name}>{name} {clockTime(at.toISOString())}</span>)}</span>
+      </div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
 
@@ -154,7 +163,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
 
     {hasIntake && <section className="pair">
       <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={intake} yards={yards} kind="carbs" modern={modern} /></div>
-      <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(1)} L</span></h2><Cumulative points={intake} yards={yards} kind="fluid" modern={modern} /></div>
+      <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(2)} L</span></h2><Cumulative points={intake} yards={yards} kind="fluid" modern={modern} /></div>
     </section>}
 
     <footer className="status">
@@ -163,7 +172,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
       <button className="import" onClick={refresh}>Refresh</button>
       <button className="import" onClick={hardRefresh}>Hard refresh</button>
       {live
-        ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: live{log.loadedAt ? ` · synced ${clockTime(log.loadedAt.toISOString())}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
+        ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: {log.liveLink ? 'live' : 'checking every 15 s'}{log.loadedAt ? ` · synced ${timeWithSeconds(log.loadedAt)}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
         : <>
           <span>Intake: {imported ? `imported ${clockTime(imported.importedAt)}${lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}` : 'none'}{importMessage ? ` · ${importMessage}` : ''}</span>
           <label className="import">Import crew export<input type="file" accept=".json,application/json" onChange={onFile} /></label>

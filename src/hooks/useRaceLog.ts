@@ -15,17 +15,22 @@ export function dedupe(ops: Op[]): Op[] {
   return ops.filter(op => { const key = op.type === 'return' ? `return:${op.row.yard}:${op.row.source}:${Date.parse(op.row.finish)}` : JSON.stringify(op); if (seen.has(key)) return false; seen.add(key); return true; });
 }
 
+// Every request gives up after 15 s, so one hung request (Wi-Fi blip) can never
+// freeze syncing until the page is reloaded.
+const TIMEOUT_MS = 15_000;
+const timeout = () => { const c = new AbortController(); setTimeout(() => c.abort(), TIMEOUT_MS); return c.signal; };
+
 async function send(op: Op) {
-  if (op.type === 'intake') return supabase.from('intake_events').upsert(op.row, { onConflict: 'id', ignoreDuplicates: true });
-  if (op.type === 'undo') return supabase.from('intake_events').update({ deleted_at: op.at }).eq('id', op.id);
-  if (op.type === 'edit') return supabase.from('intake_events').update(op.patch).eq('id', op.id);
+  if (op.type === 'intake') return supabase.from('intake_events').upsert(op.row, { onConflict: 'id', ignoreDuplicates: true }).abortSignal(timeout());
+  if (op.type === 'undo') return supabase.from('intake_events').update({ deleted_at: op.at }).eq('id', op.id).abortSignal(timeout());
+  if (op.type === 'edit') return supabase.from('intake_events').update(op.patch).eq('id', op.id).abortSignal(timeout());
   if (op.row.source === 'manual') {
     // A manual return never replaces an official one.
-    const { data, error } = await supabase.from('yard_returns').select('source').eq('yard', op.row.yard).maybeSingle();
+    const { data, error } = await supabase.from('yard_returns').select('source').eq('yard', op.row.yard).abortSignal(timeout()).maybeSingle();
     if (error) return { error };
     if (data?.source === 'official') return { error: null };
   }
-  return supabase.from('yard_returns').upsert({ ...op.row, updated_at: new Date().toISOString() }, { onConflict: 'yard' });
+  return supabase.from('yard_returns').upsert({ ...op.row, updated_at: new Date().toISOString() }, { onConflict: 'yard' }).abortSignal(timeout());
 }
 
 export function useRaceLog() {
@@ -37,6 +42,8 @@ export function useRaceLog() {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const [error, setError] = useState('');
   const flushing = useRef(false);
+  const flushStarted = useRef(0);
+  const [liveLink, setLiveLink] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthReady(true); });
@@ -46,16 +53,18 @@ export function useRaceLog() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from('intake_events').select('id,yard,at,kind,drink_kind,ml,carbs_g,text,source,deleted_at').order('at'),
-      supabase.from('yard_returns').select('yard,finish,lap_ms,source').order('yard'),
+      supabase.from('intake_events').select('id,yard,at,kind,drink_kind,ml,carbs_g,text,source,deleted_at').order('at').abortSignal(timeout()),
+      supabase.from('yard_returns').select('yard,finish,lap_ms,source').order('yard').abortSignal(timeout()),
     ]);
-    if (a.error || b.error) { setError('Could not load the race log. Showing the last copy.'); return; }
+    if (a.error || b.error) { setError('Could not reach the race log. Showing the last copy; retrying.'); return; }
     setIntake(a.data as IntakeRow[]); setReturns(b.data as ReturnRow[]); setLoadedAt(new Date()); setError('');
   }, []);
 
   const flush = useCallback(async () => {
-    if (flushing.current) return;
+    // A flush older than 40 s is treated as dead rather than blocking forever.
+    if (flushing.current && Date.now() - flushStarted.current < 40_000) return;
     flushing.current = true;
+    flushStarted.current = Date.now();
     try {
       let ops = dedupe(readOutbox());
       writeOutbox(ops); setOutbox(ops);
@@ -74,9 +83,9 @@ export function useRaceLog() {
     const channel = supabase.channel('race-log')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'intake_events' }, () => void load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'yard_returns' }, () => void load())
-      .subscribe();
-    // Fallback if the live connection drops quietly (old Safari, sleeping Wi-Fi).
-    const timer = setInterval(() => void flush(), 30_000);
+      .subscribe(status => setLiveLink(status === 'SUBSCRIBED'));
+    // Backup check in case the live connection drops quietly (old Safari, sleeping Wi-Fi).
+    const timer = setInterval(() => void flush(), 15_000);
     const wake = () => { if (!document.hidden) void flush(); };
     document.addEventListener('visibilitychange', wake);
     window.addEventListener('online', wake);
@@ -88,5 +97,5 @@ export function useRaceLog() {
   }, [flush]);
 
   const records = useMemo(() => toRecords(intake, returns, outbox), [intake, returns, outbox]);
-  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, enqueue, reload: flush };
+  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, liveLink, enqueue, reload: flush };
 }
