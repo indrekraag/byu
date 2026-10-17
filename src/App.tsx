@@ -94,7 +94,9 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const sunFirst = sun.sunrise < sun.sunset ? [['Sunrise', sun.sunrise], ['Sunset', sun.sunset]] as const : [['Sunset', sun.sunset], ['Sunrise', sun.sunrise]] as const;
   const weatherStale = weather ? now.getTime() - Date.parse(weather.at) > 45 * 60000 : true;
   const [picked, setPicked] = useState<number | null>(null);
-  const [fullClock, setFullClock] = useState(false);
+  // Full-screen clock survives reloads (e.g. an auto-update): remembered for this tab.
+  const [fullClock, setFullClockState] = useState(() => { try { return sessionStorage.getItem('byu-dash:fullclock') === '1'; } catch { return false; } });
+  const setFullClock = (open: boolean) => { setFullClockState(open); try { sessionStorage.setItem('byu-dash:fullclock', open ? '1' : '0'); } catch { /* fine */ } };
   // Fill the screen: give spare height to the lap (30%) and carbs (70%)
   // charts instead of leaving an empty band at the bottom.
   const dashRef = useRef<HTMLDivElement>(null);
