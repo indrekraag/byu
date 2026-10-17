@@ -520,3 +520,16 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stats.quiet .hero { font-size: min(54px, 7vw) !important; }
 .stats.quiet .time-line { gap: 28px; height: min(54px, 7vw); }
 .stats.quiet .sun { gap: 4px; }
+
+/* Big variant (?top=big): same quiet row, sun times + temperature moved to a
+   line under the time so the two clocks can be much larger. */
+.time-sub { display: none; }
+.stats.big .time-line .sun, .stats.big .time-line .temp { display: none; }
+.stats.big .time-sub { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 6px; font-size: min(24px, 3.1vw); font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.stats.big .time-sub > span { display: inline-flex; align-items: center; gap: 6px; }
+.stats.big .time-sub .sun-icon { width: 24px; height: 24px; }
+.stats.big .time-sub b { color: var(--text); font-weight: 700; }
+.stats.big .time-sub b.stale { color: var(--muted); }
+.stats.big .hero { font-size: min(78px, 10.1vw) !important; }
+.stats.big .time-line { height: min(78px, 10.1vw); gap: 0; }
+.stats.big .km { font-size: min(24px, 3.1vw); margin-top: 6px; }

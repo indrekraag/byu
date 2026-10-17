@@ -173,7 +173,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       {weather && <span className={weatherStale ? 'stale' : undefined}><b>{Math.round(weather.tempC)}°</b> Keila</span>}
     </div>
     </> : <>
-    <header className={top === 'quiet' ? 'stats quiet' : 'stats'}>
+    <header className={top === 'quiet' ? 'stats quiet' : top === 'big' ? 'stats quiet big' : 'stats'}>
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <span className="sep" aria-hidden="true" />
       <div className="stat">
@@ -183,6 +183,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
           <span className="sun">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
           {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'} title="Keila">{Math.round(weather.tempC)}°</strong>}
         </span>
+        <span className="time-sub">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}{weather && <b className={weatherStale ? 'stale' : undefined}>{Math.round(weather.tempC)}°</b>}</span>
       </div>
       <span className="sep" aria-hidden="true" />
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
