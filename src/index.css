@@ -462,3 +462,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .yardbar { margin-top: 4px; }
 /* Hit-the-plan figures: clearly green, still high contrast on the dark card. */
 [data-look="charcoal"] svg text.bar-value.hit { fill: #4fdc7c; }
+.yardbar { margin-bottom: 10px; }
