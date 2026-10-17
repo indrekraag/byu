@@ -61,3 +61,25 @@ describe('amountIn (last amount for stepper tiles)', async () => {
     expect(portionOf(food('gummies'), 5).carbsG).toBe(37.2);
   });
 });
+
+describe('amountIn for gram/segment foods and typed-in foods', async () => {
+  const { FOODS, amountIn, portionOf, customFood } = await import('../data/foods');
+  const food = (id: string) => FOODS.find(f => f.id === id)!;
+  it('reads older fixed entries as their amount', () => {
+    expect(amountIn(food('orange'), 'Ate prepared food: 4 peeled orange segments')).toBe(4);
+    expect(amountIn(food('potatoes'), 'Ate prepared food: 100 g cooked boiled potatoes in 1 bowl')).toBe(100);
+    expect(amountIn(food('mash'), 'Ate prepared food: 100 g prepared familiar mash in 1 bowl')).toBe(100);
+    expect(amountIn(food('bread'), 'Ate prepared food: 30 g white bread + 10 g familiar smooth jam')).toBe(1);
+  });
+  it('writes and reads new amounts, with carbs', () => {
+    expect(portionOf(food('potatoes'), 150)).toEqual({ text: '150 g cooked boiled potatoes', carbsG: 22.5 });
+    expect(amountIn(food('potatoes'), 'Ate prepared food: 150 g cooked boiled potatoes')).toBe(150);
+    expect(portionOf(food('orange'), 2).carbsG).toBe(3.1);
+  });
+  it('treats typed-in foods as portions', () => {
+    const t = customFood('Tactical', 15);
+    expect(amountIn(t, 'Ate prepared food: Tactical')).toBe(1);
+    expect(amountIn(t, 'Ate prepared food: 2 × Tactical')).toBe(2);
+    expect(portionOf(t, 2)).toEqual({ text: '2 × Tactical', carbsG: 30 });
+  });
+});

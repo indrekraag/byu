@@ -30,8 +30,10 @@ const POTATO_HALF_CARBS = Math.round(POTATO_G / 2 * 0.15 * 100) / 100;
 // Foods with an `amount` are logged as a stepper tile: the amount starts at
 // the last one logged for that food and steps by `step` (pieces or a share of
 // a portion). Carbs are per piece (count) or per full portion (percent).
-export type Amount = { kind: 'count' | 'percent'; step: number; min: number; max: number; start: number };
-export type Food = { id: string; label: string; text: string; carbsG?: number; caffeineMg?: number; amount?: Amount; estimate?: boolean };
+export type Amount = { kind: 'count' | 'percent' | 'grams'; step: number; min: number; max: number; start: number };
+// `fmt` writes the entry text for an amount; `parse` reads the amount back
+// (also from older fixed texts) so a tile can start at the last amount logged.
+export type Food = { id: string; label: string; text: string; carbsG?: number; caffeineMg?: number; amount?: Amount; estimate?: boolean; unit?: string; fmt?: (n: number) => string; parse?: RegExp };
 
 const GUMMY_CARBS = Math.round(22.3 / 3 * 100) / 100; // 3 gummies = 22.3 g (her crew plan)
 
@@ -44,10 +46,10 @@ export const FOODS: Food[] = [
   { id: 'solid-c', label: 'Solid C 160', text: 'Maurten Solid C 160', carbsG: 40, caffeineMg: 50, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
   { id: 'foodpack', label: 'Chicken & noodles', text: 'Tactical Foodpack chicken & noodles (514 kcal portion)', carbsG: 56, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
   { id: 'banana', label: '½ banana', text: '½ banana, cut into 3 bite-size pieces', carbsG: 13.5 },
-  { id: 'orange', label: '4 orange segments', text: '4 peeled orange segments', carbsG: 6.1, estimate: true },
-  { id: 'potatoes', label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl', carbsG: 15 },
-  { id: 'mash', label: 'Mash 100 g', text: '100 g prepared familiar mash in 1 bowl', carbsG: 16.8 },
-  { id: 'bread', label: 'Bread + jam', text: '30 g white bread + 10 g familiar smooth jam', carbsG: 22.1 },
+  { id: 'orange', label: 'Orange', text: 'peeled orange segments', carbsG: 1.53, estimate: true, unit: 'seg', amount: { kind: 'count', step: 1, min: 1, max: 12, start: 4 }, fmt: n => `${n} peeled orange segment${n === 1 ? '' : 's'}`, parse: /^(\d+) peeled orange segments?$/ },
+  { id: 'potatoes', label: 'Potatoes', text: 'cooked boiled potatoes', carbsG: 0.15, unit: 'g', amount: { kind: 'grams', step: 25, min: 25, max: 300, start: 100 }, fmt: n => `${n} g cooked boiled potatoes`, parse: /^(\d+) g cooked boiled potatoes( in 1 bowl)?$/ },
+  { id: 'mash', label: 'Mash', text: 'prepared familiar mash', carbsG: 0.168, unit: 'g', amount: { kind: 'grams', step: 25, min: 25, max: 300, start: 100 }, fmt: n => `${n} g prepared familiar mash`, parse: /^(\d+) g prepared familiar mash( in 1 bowl)?$/ },
+  { id: 'bread', label: 'Bread + jam', text: '30 g white bread + 10 g familiar smooth jam', carbsG: 22.1, unit: '×', amount: { kind: 'count', step: 1, min: 1, max: 4, start: 1 } },
 ];
 
 export const PRESET_TEXTS = new Set(FOODS.map(f => f.text));
@@ -55,6 +57,7 @@ export const PRESET_TEXTS = new Set(FOODS.map(f => f.text));
 /** Entry text and carbs for an amount of a food (pieces, or share of a portion). */
 export function portionOf(food: Food, factor: number): { text: string; carbsG?: number } {
   const carbsG = food.carbsG === undefined ? undefined : Math.round(food.carbsG * factor * 10) / 10;
+  if (food.fmt) return { text: food.fmt(factor), carbsG };
   if (food.id === 'potato-half') return { text: `${factor} ${factor === 1 ? 'small potato half' : 'small potato halves'}`, carbsG };
   if (food.amount?.kind === 'count') return { text: `${factor} × ${food.text}`, carbsG };
   if (factor === 1) return { text: food.text, carbsG };
@@ -64,9 +67,11 @@ export function portionOf(food: Food, factor: number): { text: string; carbsG?: 
 /** The amount in a logged entry's text for this food, or null if it is another food. */
 export function amountIn(food: Food, entryText: string): number | null {
   const t = entryText.replace('Ate prepared food: ', '').trim();
+  if (food.parse) { const m = food.parse.exec(t); return m ? Number(m[1] ?? 1) : null; }
   const esc = food.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (food.id === 'potato-half') { const m = /^(\d+) small potato hal(f|ves)$/.exec(t); return m ? Number(m[1]) : null; }
   if (food.amount?.kind === 'count') {
+    if (t === food.text) return 1; // older single-portion entries
     const m = new RegExp(`^(\\d+)( ×)? ${esc}$`).exec(t); // "4 × Party Fred gummies", older "3 Party Fred gummies"
     return m ? Number(m[1]) : null;
   }
@@ -101,3 +106,10 @@ export const NOTES: { text: string; tag: string }[] = [
   { text: 'Cold', tag: 'Cold' }, { text: 'Hot', tag: 'Hot' }, { text: 'Nap', tag: 'Nap' }, { text: 'Toilet', tag: 'WC' },
 ];
 export const noteTag = (text: string) => NOTES.find(n => n.text === text)?.tag ?? text.slice(0, 5);
+
+/** A food typed in by hand earlier, as a stepper tile counting portions of it. */
+export function customFood(text: string, carbsG?: number): Food {
+  const esc = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return { id: `custom:${text.toLowerCase()}`, label: text, text, carbsG, unit: '×', amount: { kind: 'count', step: 1, min: 1, max: 10, start: 1 },
+    fmt: n => n === 1 ? text : `${n} × ${text}`, parse: new RegExp(`^(?:(\\d+) × )?${esc}$`, 'i') };
+}

@@ -8,7 +8,7 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
-import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, lapBottleDrunk, portionOf, type Food } from '../data/foods';
+import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
@@ -37,13 +37,17 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const [foodCarbs, setFoodCarbs] = useState(() => { try { return sessionStorage.getItem('byu-dash:draft-carbs') ?? ''; } catch { return ''; } });
   useEffect(() => { try { sessionStorage.setItem('byu-dash:draft-food', foodText); sessionStorage.setItem('byu-dash:draft-carbs', foodCarbs); } catch { /* fine */ } }, [foodText, foodCarbs]);
   const [flash, setFlash] = useState('');
+  const [undoId, setUndoId] = useState<string | null>(null); // last entry, for the Undo in the message
+  const [justLogged, setJustLogged] = useState<string | null>(null); // tile that flashes mint
+  const [moreFoods, setMoreFoods] = useState(false);
+  useEffect(() => { if (!justLogged) return; const id = setTimeout(() => setJustLogged(null), 1200); return () => clearTimeout(id); }, [justLogged]);
   // Stepper values the user has nudged but not logged yet; otherwise each
   // starts at the last amount logged for that food / drink.
   const [foodAmt, setFoodAmt] = useState<Record<string, number>>({});
   const [drinkMl, setDrinkMl] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
-  useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
+  useEffect(() => { if (!flash) return; const id = setTimeout(() => { setFlash(''); setUndoId(null); }, 6000); return () => clearTimeout(id); }, [flash]);
 
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
   if (!log.session) return <div className="log"><Login /></div>;
@@ -62,11 +66,12 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     if (!kind || (kind === drink && !labelOk)) return;
     const e = drinkEntry(kind, ml, new Date().toISOString(), uuid(), kind === drink && label !== '' ? Number(label) : undefined);
     add({ type: 'intake', row: eventToRow(yard, e, 'dashboard') });
-    setFlash(`+${ml} ml ${DRINKS[kind].label.split(' (')[0]} · yard ${yard}`);
+    setFlash(`+${ml} ml ${DRINKS[kind].label.split(' (')[0]} · yard ${yard}`); setUndoId(e.id); setJustLogged('station');
   }
   function addFood(text: string, carbsG?: number) {
-    add({ type: 'intake', row: eventToRow(yard, { id: uuid(), at: new Date().toISOString(), kind: 'food', text: `Ate prepared food: ${text}`, carbsG }, 'dashboard') });
-    setFlash(`+ ${text}${carbsG === undefined ? ' · carbs unknown' : ` · ${carbsG} g`} · yard ${yard}`);
+    const id = uuid();
+    add({ type: 'intake', row: eventToRow(yard, { id, at: new Date().toISOString(), kind: 'food', text: `Ate prepared food: ${text}`, carbsG }, 'dashboard') });
+    setFlash(`+ ${text}${carbsG === undefined ? ' · carbs unknown' : ` · ${carbsG} g`} · yard ${yard}`); setUndoId(id);
   }
   function backNow() {
     const at = new Date();
@@ -89,16 +94,23 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   }
   const returned = log.records[yard]?.finish;
 
-  // Foods typed in by hand earlier in the race, newest first, as one-tap buttons.
-  const recentCustom: { text: string; carbsG?: number }[] = [];
-  for (const e of Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at))) {
-    if (e.kind !== 'food') continue;
-    const text = e.text.replace(FOOD_PREFIX, '');
-    if (PRESET_TEXTS.has(text) || FOODS.some(f => text.includes(f.text)) || text.includes('small potato') || recentCustom.some(r => r.text.trim().toLowerCase() === text.trim().toLowerCase())) continue;
-    recentCustom.push({ text, carbsG: e.carbsG });
-    if (recentCustom.length >= 6) break;
-  }
   const history = Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at));
+  // Foods typed in by hand earlier in the race become stepper tiles too.
+  const customFoods: Food[] = [];
+  for (const e of history) {
+    if (e.kind !== 'food') continue;
+    const text = e.text.replace(FOOD_PREFIX, '').replace(/^\d+ × /, '');
+    if (PRESET_TEXTS.has(text) || FOODS.some(f => amountIn(f, e.text) !== null || text.includes(f.text)) || text.includes('small potato')) continue;
+    if (customFoods.some(c => c.text.toLowerCase() === text.toLowerCase())) continue;
+    const n = /^(\d+) × /.exec(e.text.replace(FOOD_PREFIX, ''))?.[1];
+    customFoods.push(customFood(text, e.carbsG === undefined ? undefined : Math.round(e.carbsG / Number(n ?? 1) * 10) / 10));
+    if (customFoods.length >= 6) break;
+  }
+  // Most-used first; foods not used yet in this race fold under "More foods".
+  const uses = (f: Food) => history.filter(e => e.kind === 'food' && (amountIn(f, e.text) !== null || e.text.replace(FOOD_PREFIX, '') === f.text)).length;
+  const ranked = [...FOODS, ...customFoods].map((f, i) => ({ f, n: uses(f), i })).sort((a, b) => b.n - a.n || a.i - b.i);
+  const usedFoods = ranked.filter(r => r.n > 0).map(r => r.f);
+  const otherFoods = ranked.filter(r => r.n === 0).map(r => r.f);
   const lastFoodAmount = (f: Food) => { for (const e of history) { if (e.kind !== 'food') continue; const n = amountIn(f, e.text); if (n !== null) return n; } return f.amount!.start; };
   const lastDrinkMl = (kind: DrinkKind) => history.find(e => e.kind === 'drink' && e.drinkKind === kind && !e.text.startsWith('Lap bottle') && e.ml)?.ml ?? DRINK_STEP.start;
   const amountOf = (f: Food) => foodAmt[f.id] ?? lastFoodAmount(f);
@@ -107,12 +119,13 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     const a = f.amount!; setFoodAmt(m => ({ ...m, [f.id]: Math.min(a.max, Math.max(a.min, round1(amountOf(f) + dir * a.step))) }));
   }
   function logFood(f: Food) {
+    setJustLogged(f.id);
     if (!f.amount) { addFood(f.text, f.carbsG); return; }
     const p = portionOf(f, amountOf(f));
     addFood(p.text, p.carbsG);
     setFoodAmt(m => { const n = { ...m }; delete n[f.id]; return n; });
   }
-  const amountLabel = (f: Food, v: number) => f.amount!.kind === 'percent' ? `${Math.round(v * 100)}%` : `${v} ${f.id === 'gummies' ? 'pcs' : '×'}`;
+  const amountLabel = (f: Food, v: number) => f.amount!.kind === 'percent' ? `${Math.round(v * 100)}%` : f.amount!.kind === 'grams' ? `${v} g` : `${v} ${f.unit ?? (f.id === 'gummies' ? 'pcs' : '×')}`;
   // No drink chosen on this device yet: use the last station drink logged.
   const lastStationKind = history.find(e => e.kind === 'drink' && !e.text.startsWith('Lap bottle') && e.drinkKind)?.drinkKind as DrinkKind | undefined;
   if (!drink && lastStationKind) queueMicrotask(() => setDrink(d => d || lastStationKind));
@@ -131,7 +144,17 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     const ml = lapBottleDrunk(left);
     const e = drinkEntry('water', ml, new Date().toISOString(), uuid());
     add({ type: 'intake', row: eventToRow(yard, { ...e, text: `Lap bottle back · ${label} (${ml} ml water)` }, 'dashboard') });
-    setFlash(`Lap bottle back ${label.toLowerCase()} · ${ml} ml water · yard ${yard}`);
+    setFlash(`Lap bottle back ${label.toLowerCase()} · ${ml} ml water · yard ${yard}`); setUndoId(e.id); setJustLogged(`lap:${label}`);
+  }
+  function renderFood(f: Food) {
+    const lit = justLogged === f.id ? ' just-logged' : '';
+    return f.amount
+      ? <div key={f.id} className={`stepper-tile${lit}`}>
+        <button className="step" aria-label={`Less ${f.label}`} disabled={amountOf(f) <= f.amount.min} onClick={() => nudgeFood(f, -1)}>−</button>
+        <button className="big-btn secondary log-amount" disabled={!started} onClick={() => logFood(f)}>{f.label} · {amountLabel(f, amountOf(f))}<small>{f.carbsG === undefined ? 'carbs ?' : `${g(portionOf(f, amountOf(f)).carbsG)} g`}{f.estimate ? ' (est.)' : ''}</small></button>
+        <button className="step" aria-label={`More ${f.label}`} disabled={amountOf(f) >= f.amount.max} onClick={() => nudgeFood(f, 1)}>+</button>
+      </div>
+      : <button key={f.id} className={`big-btn secondary${lit}`} disabled={!started} onClick={() => logFood(f)}>{f.label}{f.carbsG !== undefined ? <small>{g(f.carbsG)} g</small> : <small>carbs ?</small>}</button>;
   }
   function saveEdit(e: IntakeEvent, patch: EditPatch) {
     add({ type: 'edit', id: e.id, patch });
@@ -156,7 +179,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       </div>
       <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
       {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
-      {flash && <p className="flash" role="status">{flash}</p>}
+      {flash && <p className="flash" role="status"><span>{flash}</span>{undoId && <button className="flash-undo" onClick={() => { add({ type: 'undo', id: undoId, at: new Date().toISOString() }); setUndoId(null); setFlash('Undone.'); }}>Undo</button>}</p>}
     </div>
 
 
@@ -170,9 +193,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         </select>
         {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
         <p className="portion-title">Lap bottle back (250 ml water) · tap what is left</p>
-        <div className="row four">{LAP_BOTTLE_LEFT.map(o => <button key={o.label} className="big-btn lap-bottle" disabled={!started} onClick={() => lapBottleBack(o.label, o.left)}>{o.label}<small>{lapBottleDrunk(o.left)} ml drunk</small></button>)}</div>
+        <div className="row four">{LAP_BOTTLE_LEFT.map(o => <button key={o.label} className={`big-btn lap-bottle${justLogged === `lap:${o.label}` ? ' just-logged' : ''}`} disabled={!started} onClick={() => lapBottleBack(o.label, o.left)}>{o.label}<small>{lapBottleDrunk(o.left)} ml drunk</small></button>)}</div>
         <p className="portion-title">Station drink</p>
-        <div className="stepper-tile drink">
+        <div className={`stepper-tile drink${justLogged === 'station' ? ' just-logged' : ''}`}>
           <button className="step" aria-label="Less" disabled={!drink || stationMl <= DRINK_STEP.min} onClick={() => nudgeDrink(-1)}>−</button>
           <button className="big-btn log-amount" disabled={!started || !drink || !labelOk} onClick={logStation}>{drink ? <>Log {stationMl} ml<small>{DRINKS[drink].label.split(' (')[0]}{stationCarbs !== undefined ? ` · ${g(stationCarbs)} g` : ' · carbs ?'}</small></> : 'Choose a drink above'}</button>
           <button className="step" aria-label="More" disabled={!drink || stationMl >= DRINK_STEP.max} onClick={() => nudgeDrink(1)}>+</button>
@@ -180,16 +203,10 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       </section>
       <section className="card">
         <h2>Food</h2>
-        <div className="food-grid">{FOODS.map(f => f.amount
-          ? <div key={f.id} className="stepper-tile">
-            <button className="step" aria-label={`Less ${f.label}`} disabled={amountOf(f) <= f.amount.min} onClick={() => nudgeFood(f, -1)}>−</button>
-            <button className="big-btn secondary log-amount" disabled={!started} onClick={() => logFood(f)}>{f.label} · {amountLabel(f, amountOf(f))}<small>{g(portionOf(f, amountOf(f)).carbsG)} g{f.estimate ? ' (est.)' : ''}</small></button>
-            <button className="step" aria-label={`More ${f.label}`} disabled={amountOf(f) >= f.amount.max} onClick={() => nudgeFood(f, 1)}>+</button>
-          </div>
-          : <button key={f.id} className="big-btn secondary" disabled={!started} onClick={() => logFood(f)}>{f.label}{f.carbsG !== undefined ? <small>{g(f.carbsG)} g</small> : <small>carbs ?</small>}</button>)}</div>
-        {recentCustom.length > 0 && <>
-          <p className="portion-title">Earlier today</p>
-          <div className="row two">{recentCustom.map(r => <button key={r.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(r.text, r.carbsG)}>{r.text}{r.carbsG !== undefined ? ` · ${g(r.carbsG)} g` : ''}</button>)}</div>
+        <div className="food-grid">{(usedFoods.length ? usedFoods : otherFoods).map(renderFood)}</div>
+        {usedFoods.length > 0 && otherFoods.length > 0 && <>
+          <button className="fold" aria-expanded={moreFoods} onClick={() => setMoreFoods(o => !o)}><span className="portion-title">More foods ({otherFoods.length})</span><span>{moreFoods ? 'Hide' : 'Show'}</span></button>
+          {moreFoods && <div className="food-grid">{otherFoods.map(renderFood)}</div>}
         </>}
         <div className="row custom">
           <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
