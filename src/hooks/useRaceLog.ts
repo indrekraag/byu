@@ -18,6 +18,7 @@ export function dedupe(ops: Op[]): Op[] {
 async function send(op: Op) {
   if (op.type === 'intake') return supabase.from('intake_events').upsert(op.row, { onConflict: 'id', ignoreDuplicates: true });
   if (op.type === 'undo') return supabase.from('intake_events').update({ deleted_at: op.at }).eq('id', op.id);
+  if (op.type === 'edit') return supabase.from('intake_events').update(op.patch).eq('id', op.id);
   if (op.row.source === 'manual') {
     // A manual return never replaces an official one.
     const { data, error } = await supabase.from('yard_returns').select('source').eq('yard', op.row.yard).maybeSingle();

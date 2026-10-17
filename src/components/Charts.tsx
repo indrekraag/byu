@@ -95,7 +95,7 @@ export function LapChart({ laps, yards, modern = false }: { laps: LapPoint[]; ya
   </svg>;
 }
 
-export function CarbsPerYard({ points, yards, modern = false }: { points: IntakePoint[]; yards: number; modern?: boolean }) {
+export function CarbsPerYard({ points, yards, modern = false, selected, onSelect }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void }) {
   const f: Frame = { w: 720, h: 196, l: 52, r: 74, t: modern ? 30 : 20, b: 32, yards };
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
@@ -111,13 +111,15 @@ export function CarbsPerYard({ points, yards, modern = false }: { points: Intake
       const label = p.hasEntries || (p.current && p.carbs > 0) ? `${Math.round(p.carbs)}${p.incomplete ? '+?' : ''}` : '';
       // Wide bars, no tracks, gram value on top (the owner's pick, 2026-10-17).
       const bars = <path className="carb-bar" d={topRounded(x, top, bw, height, modern ? 8 : 4)} />;
-      return <g key={p.yard} className={p.current ? 'current' : undefined}>
+      return <g key={p.yard} className={[p.current ? 'current' : '', selected === p.yard ? 'selected' : ''].join(' ').trim() || undefined}>
         {bars}
         {!p.hasEntries && !p.current && <text className="muted-mark" x={xOf(f, p.yard)} y={y(0) - 8} textAnchor="middle">–</text>}
         {modern ? label && <text className="bar-value" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">{label}</text>
           : p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">?</text>}
       </g>; })}
     <YardAxis f={f} />
+    {/* Tap targets: the whole column, bigger than the bar. */}
+    {onSelect && points.map(p => <rect key={`hit${p.yard}`} className="hit" x={xOf(f, p.yard) - colW(f) / 2} y={f.t - 20} width={colW(f)} height={f.h - f.t + 20} onClick={() => onSelect(p.yard)} />)}
   </svg>;
 }
 

@@ -3,9 +3,12 @@ import { emptyYard, type IntakeEvent, type YardRecord } from './raceHQ';
 export type IntakeRow = { id: string; yard: number; at: string; kind: 'food' | 'drink' | null; drink_kind: string | null; ml: number | null; carbs_g: number | null; text: string; source: 'dashboard' | 'laura-app-import'; deleted_at: string | null };
 export type ReturnRow = { yard: number; finish: string; lap_ms: number | null; source: 'official' | 'manual' };
 
+export type EditPatch = Partial<Pick<IntakeRow, 'yard' | 'ml' | 'carbs_g' | 'text'>>;
+
 export type Op =
   | { type: 'intake'; row: IntakeRow }
   | { type: 'undo'; id: string; at: string }
+  | { type: 'edit'; id: string; patch: EditPatch }
   | { type: 'return'; row: ReturnRow };
 
 const num = (v: number | null | undefined) => v === null || v === undefined ? undefined : Number(v);
@@ -17,6 +20,7 @@ export function toRecords(intake: IntakeRow[], returns: ReturnRow[], outbox: Op[
   for (const op of outbox) {
     if (op.type === 'intake' && !rows.has(op.row.id)) rows.set(op.row.id, op.row);
     if (op.type === 'undo') { const r = rows.get(op.id); if (r) rows.set(op.id, { ...r, deleted_at: op.at }); }
+    if (op.type === 'edit') { const r = rows.get(op.id); if (r) rows.set(op.id, { ...r, ...op.patch }); }
     if (op.type === 'return' && !(op.row.source === 'manual' && rets.get(op.row.yard)?.source === 'official')) rets.set(op.row.yard, op.row);
   }
   const records: Record<string, YardRecord> = {};

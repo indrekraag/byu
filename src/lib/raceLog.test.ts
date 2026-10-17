@@ -39,3 +39,11 @@ describe('outbox dedupe', async () => {
     expect(dedupe([a, b, a])).toHaveLength(1);
   });
 });
+
+describe('edits', () => {
+  it('applies an unsent edit, including a move to another yard', () => {
+    const recs = toRecords([row('a', 1, { carbs_g: 20 })], [], [{ type: 'edit', id: 'a', patch: { yard: 2, carbs_g: 30 } }]);
+    expect(recs[1]?.intake ?? []).toEqual([]);
+    expect(recs[2].intake?.[0]).toMatchObject({ id: 'a', carbsG: 30 });
+  });
+});

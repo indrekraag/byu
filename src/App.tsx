@@ -9,6 +9,9 @@ import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
 import { LogPage } from './pages/LogPage';
 import { applyLook } from './lib/look';
+import { countdownClass } from './lib/countdown';
+import { hardRefresh, refresh } from './lib/refresh';
+import { raceIntakeRecords, DRINKS, type DrinkKind } from './lib/intakeAdvice';
 
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
@@ -54,6 +57,8 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
+  const [picked, setPicked] = useState<number | null>(null);
+  useEffect(() => { if (picked === null) return; const id = setTimeout(() => setPicked(null), 12000); return () => clearTimeout(id); }, [picked]);
   const modern = true;
   const live = !!log.session;
   const [imported, setImported] = useState<ImportedIntake | null>(loadImported);
@@ -93,7 +98,7 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong></div>
       <div className="stat"><span className="label">Time</span><strong className="hero">{timeWithSeconds(now)}</strong></div>
-      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className="hero">{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
+      <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
 
     <section className="panel">
@@ -103,7 +108,8 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
 
     <section className="panel">
       <h2>Carbs per yard <span className="unit">g · +? = some carbs unknown</span></h2>
-      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} /> : <p className="empty">No intake data yet. Log in below.</p>}
+      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} selected={picked} onSelect={yd => setPicked(p => p === yd ? null : yd)} /> : <p className="empty">No intake data yet. Log in below.</p>}
+        {picked !== null && <YardCard yard={picked} records={records} start={start} onClose={() => setPicked(null)} />}
     </section>
 
     {hasIntake && <section className="pair">
@@ -114,6 +120,8 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
     <footer className="status">
       <span className={error || stale ? 'warn' : undefined}>Laps: {snapshot ? `official feed ${clockTime(snapshot.checkedAt)}` : 'waiting for feed'}{error ? ` · ${error}` : ''}</span>
       {live && <button className="import" onClick={onLog}>Log food &amp; drink →</button>}
+      <button className="import" onClick={refresh}>Refresh</button>
+      <button className="import" onClick={hardRefresh}>Hard refresh</button>
       {live
         ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: live{log.loadedAt ? ` · synced ${clockTime(log.loadedAt.toISOString())}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
         : <>
@@ -122,6 +130,23 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
           {log.authReady && <Login compact />}
         </>}
     </footer>
+  </div>;
+}
+
+/** Tap a carbs bar: what was eaten and drunk in that yard, with amounts. */
+function YardCard({ yard, records, start, onClose }: { yard: number; records: Record<string, import('./lib/raceHQ').YardRecord>; start: Date; onClose: () => void }) {
+  const events = raceIntakeRecords(records, start, new Date())[yard]?.intake ?? [];
+  const carbs = events.reduce((s, e) => s + (e.carbsG ?? 0), 0);
+  const ml = events.reduce((s, e) => s + (e.ml ?? 0), 0);
+  const unknown = events.some(e => e.carbsG === undefined);
+  return <div className="yard-card" role="dialog" aria-label={`Yard ${yard} intake`} onClick={onClose}>
+    <div className="yard-card-head"><strong>Yard {yard}</strong><span>{Math.round(carbs * 10) / 10} g{unknown ? ' + ?' : ''} · {ml} ml</span></div>
+    {!events.length && <p className="muted">Nothing logged.</p>}
+    <ul>{events.map(e => <li key={e.id}>
+      <span className="when">{clockTime(e.at)}</span>
+      <span className="what">{e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace('Ate prepared food: ', '')}</span>
+      <span className="carbs">{e.carbsG === undefined ? '?' : `${Math.round(e.carbsG * 10) / 10} g`}</span>
+    </li>)}</ul>
   </div>;
 }
 

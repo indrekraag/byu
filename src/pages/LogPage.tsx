@@ -8,17 +8,14 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
+import { DRINK_AMOUNTS, FOODS, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
+import { countdownClass } from '../lib/countdown';
+import { hardRefresh, refresh } from '../lib/refresh';
+import type { IntakeEvent } from '../lib/raceHQ';
+import type { EditPatch } from '../lib/raceLog';
 
-// Laura's own presets and carb values (her crew plan); unknown stays unknown.
-const FOODS: { label: string; text: string; carbsG?: number }[] = [
-  { label: 'Gel · 25 g', text: '1 regular Maurten Gel 100 (non-caffeinated)', carbsG: 25 },
-  { label: '3 gummies · 22 g', text: '3 Party Fred gummies', carbsG: 22.3 },
-  { label: '½ banana', text: '½ banana, cut into 3 bite-size pieces' },
-  { label: '4 orange segments', text: '4 peeled orange segments' },
-  { label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl' },
-  { label: 'Mash 100 g', text: '100 g prepared familiar mash in 1 bowl' },
-  { label: 'Bread + jam', text: '30 g white bread + 10 g familiar smooth jam' },
-];
+const FOOD_PREFIX = 'Ate prepared food: ';
+const g = (v?: number) => v === undefined ? '?' : `${Math.round(v * 10) / 10}`;
 const LAST_DRINK_KEY = 'byu-dash:last-drink';
 const uuid = () => crypto.randomUUID();
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Europe/Tallinn', hour: '2-digit', minute: '2-digit' });
@@ -37,6 +34,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const [foodText, setFoodText] = useState('');
   const [foodCarbs, setFoodCarbs] = useState('');
   const [flash, setFlash] = useState('');
+  const [picker, setPicker] = useState<Food | null>(null);
+  const [step, setStep] = useState(1);
+  const [editing, setEditing] = useState<string | null>(null);
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
 
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
@@ -81,6 +81,30 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   }
   const returned = log.records[yard]?.finish;
 
+  // Foods typed in by hand earlier in the race, newest first, as one-tap buttons.
+  const recentCustom: { text: string; carbsG?: number }[] = [];
+  for (const e of Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at))) {
+    if (e.kind !== 'food') continue;
+    const text = e.text.replace(FOOD_PREFIX, '');
+    if (PRESET_TEXTS.has(text) || FOODS.some(f => text.startsWith(f.text) || text.includes('small potato')) || recentCustom.some(r => r.text === text)) continue;
+    recentCustom.push({ text, carbsG: e.carbsG });
+    if (recentCustom.length >= 6) break;
+  }
+  function tapFood(f: Food) {
+    if (f.portions || f.stepper) { setPicker(picker?.id === f.id ? null : f); setStep(f.stepper ? 1 : 1); return; }
+    addFood(f.text, f.carbsG);
+  }
+  function addPortion(f: Food, factor: number) {
+    const p = portionOf(f, factor);
+    addFood(p.text, p.carbsG);
+    setPicker(null);
+  }
+  function saveEdit(e: IntakeEvent, patch: EditPatch) {
+    add({ type: 'edit', id: e.id, patch });
+    setEditing(null);
+    setFlash(patch.yard !== undefined && patch.yard !== yard ? `Moved to yard ${patch.yard}.` : 'Entry updated.');
+  }
+
   return <div className="log">
     <header className="log-head">
       <div className="yard-pick">
@@ -88,7 +112,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         <div><span className="label">{yardOffset ? 'Logging to yard' : 'Yard'}</span><strong>{yard}</strong></div>
         <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
       </div>
-      <div className="log-clock"><span className="label">Next start</span><strong>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
+      <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
     </header>
     <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
     {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
@@ -106,12 +130,26 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         {(Object.keys(DRINKS) as DrinkKind[]).map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
       </select>
       {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
-      <div className="row three">{[100, 250, 500].map(ml => <button key={ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(ml)}>+{ml} ml</button>)}</div>
+      <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
     </section>
 
     <section className="card">
       <h2>Food</h2>
-      <div className="row two">{FOODS.map(f => <button key={f.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(f.text, f.carbsG)}>{f.label}</button>)}</div>
+      <div className="row two">{FOODS.map(f => <button key={f.id} className="big-btn secondary" aria-expanded={f.portions || f.stepper ? picker?.id === f.id : undefined} disabled={!started} onClick={() => tapFood(f)}>{f.label}{f.carbsG !== undefined && !f.portions && !f.stepper ? ` · ${g(f.carbsG)} g` : ''}{f.portions || f.stepper ? ' …' : ''}</button>)}</div>
+      {picker && <div className="portion" role="group" aria-label={`How much ${picker.label}`}>
+        <p className="portion-title">{picker.label}: how much? {picker.estimate && <span className="muted">(≈ {g(picker.carbsG)} g each, estimate)</span>}</p>
+        {picker.portions && <div className="row three">{picker.portions.map(p => <button key={p.label} className="big-btn" onClick={() => addPortion(picker, p.factor)}>{p.label}<small>{g(portionOf(picker, p.factor).carbsG)} g</small></button>)}</div>}
+        {picker.stepper && <div className="row stepper">
+          <button className="big-btn secondary" disabled={step <= picker.stepper + 1e-9} onClick={() => setStep(v => Math.max(picker.stepper!, Math.round((v - picker.stepper!) * 10) / 10))}>−10%</button>
+          <span className="step-value">{Math.round(step * 100)}%<small>{g(portionOf(picker, step).carbsG)} g</small></span>
+          <button className="big-btn secondary" disabled={step >= 1} onClick={() => setStep(v => Math.min(1, Math.round((v + picker.stepper!) * 10) / 10))}>+10%</button>
+          <button className="big-btn" onClick={() => addPortion(picker, step)}>Add</button>
+        </div>}
+      </div>}
+      {recentCustom.length > 0 && <>
+        <p className="portion-title">Earlier today</p>
+        <div className="row two">{recentCustom.map(r => <button key={r.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(r.text, r.carbsG)}>{r.text}{r.carbsG !== undefined ? ` · ${g(r.carbsG)} g` : ''}</button>)}</div>
+      </>}
       <div className="row custom">
         <input placeholder="Other food" value={foodText} onChange={e => setFoodText(e.target.value)} />
         <input type="number" inputMode="decimal" min="0" placeholder="g carbs" value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
@@ -122,17 +160,55 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     <section className="card">
       <h2>Logged this yard</h2>
       {!entries.length && <p className="muted">Nothing yet.</p>}
-      {entries.map(e => <div key={e.id} className="entry">
-        <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace('Ate prepared food: ', '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${e.carbsG} g`}</span>
-        <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
-      </div>)}
+      {entries.map(e => editing === e.id
+        ? <EntryEditor key={e.id} entry={e} yard={yard} maxYard={clock.lapNumber} onSave={patch => saveEdit(e, patch)} onCancel={() => setEditing(null)} />
+        : <div key={e.id} className="entry">
+          <span>{hhmm(e.at)} · {e.kind === 'drink' ? `${e.ml} ml ${DRINKS[(e.drinkKind || 'other') as DrinkKind]?.label.split(' (')[0] ?? 'drink'}` : e.text.replace(FOOD_PREFIX, '')}{e.carbsG === undefined ? ' · carbs ?' : ` · ${g(e.carbsG)} g`}</span>
+          <span className="entry-actions">
+            <button className="link" onClick={() => setEditing(e.id)}>Edit</button>
+            <button className="link" onClick={() => { add({ type: 'undo', id: e.id, at: new Date().toISOString() }); setFlash('Entry undone.'); }}>Undo</button>
+          </span>
+        </div>)}
     </section>
 
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
       <button className="link" onClick={exportJson}>Export race log</button>
       <button className="link" onClick={onDashboard}>← Dashboard</button>
+      <button className="link" onClick={refresh}>Refresh</button>
+      <button className="link" onClick={hardRefresh}>Hard refresh</button>
       <button className="link" onClick={() => void supabase.auth.signOut()}>Log out</button>
     </section>
+  </div>;
+}
+
+/** Inline editor: change amount, carbs, food name, or move the entry to another yard. */
+function EntryEditor({ entry, yard, maxYard, onSave, onCancel }: { entry: IntakeEvent; yard: number; maxYard: number; onSave: (p: EditPatch) => void; onCancel: () => void }) {
+  const drink = entry.kind === 'drink';
+  const per500 = drink ? DRINKS[(entry.drinkKind || 'other') as DrinkKind]?.carbsPer500 : undefined;
+  const [ml, setMl] = useState(String(entry.ml ?? ''));
+  const [carbs, setCarbs] = useState(entry.carbsG === undefined ? '' : String(entry.carbsG));
+  const [text, setText] = useState(entry.text.replace(FOOD_PREFIX, ''));
+  const [toYard, setToYard] = useState(yard);
+  // A drink with a known mix keeps its carbs in step with the amount.
+  function changeMl(v: string) {
+    setMl(v);
+    if (per500 !== undefined && v !== '' && Number(v) >= 0) setCarbs(String(Math.round(per500 * Number(v) / 500 * 100) / 100));
+  }
+  const valid = (!drink || (ml !== '' && Number(ml) >= 0)) && (carbs === '' || Number(carbs) >= 0) && (drink || text.trim() !== '');
+  return <div className="entry-edit">
+    {drink
+      ? <label>Amount (ml)<input type="number" inputMode="numeric" min="0" step="50" value={ml} onChange={ev => changeMl(ev.target.value)} /></label>
+      : <label>Food<input value={text} onChange={ev => setText(ev.target.value)} /></label>}
+    <label>Carbs (g, blank = unknown)<input type="number" inputMode="decimal" min="0" step="any" value={carbs} onChange={ev => setCarbs(ev.target.value)} /></label>
+    <label>Yard<select value={toYard} onChange={ev => setToYard(Number(ev.target.value))}>{Array.from({ length: maxYard }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+    <div className="row two">
+      <button className="big-btn secondary" onClick={onCancel}>Cancel</button>
+      <button className="big-btn" disabled={!valid} onClick={() => onSave({
+        carbs_g: carbs === '' ? null : Number(carbs),
+        ...(drink ? { ml: Number(ml) } : { text: `${entry.text.startsWith(FOOD_PREFIX) ? FOOD_PREFIX : ''}${text.trim()}` }),
+        ...(toYard !== yard ? { yard: toYard } : {}),
+      })}>Save</button>
+    </div>
   </div>;
 }
