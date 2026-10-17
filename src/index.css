@@ -256,3 +256,5 @@ svg rect.hit { fill: transparent; cursor: pointer; }
 .progress .fill.ok { background: var(--fluid); }
 .row.four { grid-template-columns: repeat(4, 1fr); }
 .row.four .big-btn { font-size: 15px; padding: 12px 4px; }
+.strip { flex-wrap: nowrap; overflow: hidden; }
+.chip { font-size: min(16px, 2.1vw); padding: 6px 12px; white-space: nowrap; }
