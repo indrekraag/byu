@@ -292,7 +292,8 @@ function FullClock({ now, clock, lap, onClose }: { now: Date; clock: ReturnType<
   const yardStartMs = now.getTime() - (hour - clock.msToNextLap);
   const elapsed = hour - clock.msToNextLap;
   const band = planBand(clock.lapNumber);
-  const winFrom = (band.minMin ?? band.maxMin - 2) * 60_000, winTo = band.maxMin * 60_000;
+  // Return window: from minute 42 (her fastest laps tonight) to the end of her plan band.
+  const winFrom = 42 * 60_000, winTo = band.maxMin * 60_000;
   const pct = (ms: number) => `${Math.max(0, Math.min(100, ms / hour * 100))}%`;
   const at = (ms: number) => clockTime(new Date(yardStartMs + ms).toISOString());
   return <div className="final-countdown fullclock" role="dialog" aria-label="Full-screen clock" onClick={onClose}>
