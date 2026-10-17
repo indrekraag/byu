@@ -8,7 +8,7 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
-import { DRINK_AMOUNTS, FOODS, LAP_BOTTLE_AMOUNTS, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
+import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
@@ -35,8 +35,10 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const [foodText, setFoodText] = useState('');
   const [foodCarbs, setFoodCarbs] = useState('');
   const [flash, setFlash] = useState('');
-  const [picker, setPicker] = useState<Food | null>(null);
-  const [step, setStep] = useState(1);
+  // Stepper values the user has nudged but not logged yet; otherwise each
+  // starts at the last amount logged for that food / drink.
+  const [foodAmt, setFoodAmt] = useState<Record<string, number>>({});
+  const [drinkMl, setDrinkMl] = useState<Record<string, number>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
@@ -94,14 +96,37 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     recentCustom.push({ text, carbsG: e.carbsG });
     if (recentCustom.length >= 6) break;
   }
-  function tapFood(f: Food) {
-    if (f.portions || f.stepper) { setPicker(picker?.id === f.id ? null : f); setStep(f.stepper ? 1 : 1); return; }
-    addFood(f.text, f.carbsG);
+  const history = Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at));
+  const lastFoodAmount = (f: Food) => { for (const e of history) { if (e.kind !== 'food') continue; const n = amountIn(f, e.text); if (n !== null) return n; } return f.amount!.start; };
+  const lastDrinkMl = (kind: DrinkKind) => history.find(e => e.kind === 'drink' && e.drinkKind === kind && !e.text.startsWith('Lap bottle') && e.ml)?.ml ?? DRINK_STEP.start;
+  const amountOf = (f: Food) => foodAmt[f.id] ?? lastFoodAmount(f);
+  const round1 = (v: number) => Math.round(v * 10) / 10;
+  function nudgeFood(f: Food, dir: 1 | -1) {
+    const a = f.amount!; setFoodAmt(m => ({ ...m, [f.id]: Math.min(a.max, Math.max(a.min, round1(amountOf(f) + dir * a.step))) }));
   }
-  function addPortion(f: Food, factor: number) {
-    const p = portionOf(f, factor);
+  function logFood(f: Food) {
+    if (!f.amount) { addFood(f.text, f.carbsG); return; }
+    const p = portionOf(f, amountOf(f));
     addFood(p.text, p.carbsG);
-    setPicker(null);
+    setFoodAmt(m => { const n = { ...m }; delete n[f.id]; return n; });
+  }
+  const amountLabel = (f: Food, v: number) => f.amount!.kind === 'percent' ? `${Math.round(v * 100)}%` : `${v} ${f.id === 'gummies' ? 'pcs' : '×'}`;
+  const stationMl = drink ? drinkMl[drink] ?? lastDrinkMl(drink) : DRINK_STEP.start;
+  const stationCarbs = drink ? drinkEntry(drink, stationMl, '', '', label === '' ? undefined : Number(label)).carbsG : undefined;
+  function nudgeDrink(dir: 1 | -1) {
+    if (!drink) return;
+    setDrinkMl(m => ({ ...m, [drink]: Math.min(DRINK_STEP.max, Math.max(DRINK_STEP.min, stationMl + dir * DRINK_STEP.step)) }));
+  }
+  function logStation() {
+    if (!drink) return;
+    addDrink(stationMl);
+    setDrinkMl(m => { const n = { ...m }; delete n[drink]; return n; });
+  }
+  function lapBottleBack(label: string, left: number) {
+    const ml = lapBottleDrunk(left);
+    const e = drinkEntry('water', ml, new Date().toISOString(), uuid());
+    add({ type: 'intake', row: eventToRow(yard, { ...e, text: `Lap bottle back · ${label} (${ml} ml water)` }, 'dashboard') });
+    setFlash(`Lap bottle back ${label.toLowerCase()} · ${ml} ml water · yard ${yard}`);
   }
   function saveEdit(e: IntakeEvent, patch: EditPatch) {
     add({ type: 'edit', id: e.id, patch });
@@ -139,24 +164,24 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
           {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
         </select>
         {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
-        <p className="portion-title">Lap bottle · water</p>
-        <div className="row four">{LAP_BOTTLE_AMOUNTS.map(ml => <button key={ml} className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(ml, 'water')}>{ml === 250 ? 'Full 250' : `${ml} ml`}</button>)}</div>
-        <p className="portion-title">Selected drink</p>
-        <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
+        <p className="portion-title">Lap bottle back (250 ml water) · tap what is left</p>
+        <div className="row four">{LAP_BOTTLE_LEFT.map(o => <button key={o.label} className="big-btn lap-bottle" disabled={!started} onClick={() => lapBottleBack(o.label, o.left)}>{o.label}<small>{lapBottleDrunk(o.left)} ml drunk</small></button>)}</div>
+        <p className="portion-title">Station drink</p>
+        <div className="stepper-tile drink">
+          <button className="step" aria-label="Less" disabled={!drink || stationMl <= DRINK_STEP.min} onClick={() => nudgeDrink(-1)}>−</button>
+          <button className="big-btn log-amount" disabled={!started || !drink || !labelOk} onClick={logStation}>{drink ? <>Log {stationMl} ml<small>{DRINKS[drink].label.split(' (')[0]}{stationCarbs !== undefined ? ` · ${g(stationCarbs)} g` : ' · carbs ?'}</small></> : 'Choose a drink above'}</button>
+          <button className="step" aria-label="More" disabled={!drink || stationMl >= DRINK_STEP.max} onClick={() => nudgeDrink(1)}>+</button>
+        </div>
       </section>
       <section className="card">
         <h2>Food</h2>
-        <div className="row two">{FOODS.map(f => <button key={f.id} className="big-btn secondary" aria-expanded={f.portions || f.stepper ? picker?.id === f.id : undefined} disabled={!started} onClick={() => tapFood(f)}>{f.label}{f.carbsG !== undefined && !f.portions && !f.stepper ? ` · ${g(f.carbsG)} g` : ''}{f.portions || f.stepper ? ' …' : ''}</button>)}</div>
-        {picker && <div className="portion" role="group" aria-label={`How much ${picker.label}`}>
-          <p className="portion-title">{picker.label}: how much? {picker.estimate && <span className="muted">(≈ {g(picker.carbsG)} g each, estimate)</span>}</p>
-          {picker.portions && <div className="row three">{picker.portions.map(p => <button key={p.label} className="big-btn" onClick={() => addPortion(picker, p.factor)}>{p.label}<small>{g(portionOf(picker, p.factor).carbsG)} g</small></button>)}</div>}
-          {picker.stepper && <div className="row stepper">
-            <button className="big-btn secondary" disabled={step <= picker.stepper + 1e-9} onClick={() => setStep(v => Math.max(picker.stepper!, Math.round((v - picker.stepper!) * 10) / 10))}>−10%</button>
-            <span className="step-value">{Math.round(step * 100)}%<small>{g(portionOf(picker, step).carbsG)} g</small></span>
-            <button className="big-btn secondary" disabled={step >= 1} onClick={() => setStep(v => Math.min(1, Math.round((v + picker.stepper!) * 10) / 10))}>+10%</button>
-            <button className="big-btn" onClick={() => addPortion(picker, step)}>Add</button>
-          </div>}
-        </div>}
+        <div className="food-grid">{FOODS.map(f => f.amount
+          ? <div key={f.id} className="stepper-tile">
+            <button className="step" aria-label={`Less ${f.label}`} disabled={amountOf(f) <= f.amount.min} onClick={() => nudgeFood(f, -1)}>−</button>
+            <button className="big-btn secondary log-amount" disabled={!started} onClick={() => logFood(f)}>{f.label} · {amountLabel(f, amountOf(f))}<small>{g(portionOf(f, amountOf(f)).carbsG)} g{f.estimate ? ' (est.)' : ''}</small></button>
+            <button className="step" aria-label={`More ${f.label}`} disabled={amountOf(f) >= f.amount.max} onClick={() => nudgeFood(f, 1)}>+</button>
+          </div>
+          : <button key={f.id} className="big-btn secondary" disabled={!started} onClick={() => logFood(f)}>{f.label}{f.carbsG !== undefined ? <small>{g(f.carbsG)} g</small> : <small>carbs ?</small>}</button>)}</div>
         {recentCustom.length > 0 && <>
           <p className="portion-title">Earlier today</p>
           <div className="row two">{recentCustom.map(r => <button key={r.text} className="big-btn secondary" disabled={!started} onClick={() => addFood(r.text, r.carbsG)}>{r.text}{r.carbsG !== undefined ? ` · ${g(r.carbsG)} g` : ''}</button>)}</div>

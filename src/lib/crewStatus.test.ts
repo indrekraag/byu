@@ -44,3 +44,20 @@ describe('since last / caffeine', () => {
     expect(at('2026-10-17T21:30:00Z').total).toBe(100);
   });
 });
+
+describe('amountIn (last amount for stepper tiles)', async () => {
+  const { FOODS, amountIn, portionOf } = await import('../data/foods');
+  const food = (id: string) => FOODS.find(f => f.id === id)!;
+  it('reads counts, older fixed texts and percentages back', () => {
+    expect(amountIn(food('gummies'), 'Ate prepared food: 4 × Party Fred gummies')).toBe(4);
+    expect(amountIn(food('gummies'), 'Ate prepared food: 3 Party Fred gummies')).toBe(3);
+    expect(amountIn(food('solid-c'), `Ate prepared food: ${portionOf(food('solid-c'), 0.3).text}`)).toBe(0.3);
+    expect(amountIn(food('solid-c'), 'Ate prepared food: Maurten Solid C 160')).toBe(1);
+    expect(amountIn(food('potato-half'), 'Ate prepared food: 3 small potato halves')).toBe(3);
+    expect(amountIn(food('gummies'), 'Ate prepared food: 2 × palaleib with ham and pickle')).toBeNull();
+  });
+  it('prices gummies per piece', () => {
+    expect(portionOf(food('gummies'), 3).carbsG).toBe(22.3);
+    expect(portionOf(food('gummies'), 5).carbsG).toBe(37.2);
+  });
+});

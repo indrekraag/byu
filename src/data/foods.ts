@@ -21,17 +21,22 @@
 const POTATO_G = 50;
 const POTATO_HALF_CARBS = Math.round(POTATO_G / 2 * 0.15 * 100) / 100;
 
-export type Portion = { label: string; factor: number };
-export type Food = { id: string; label: string; text: string; carbsG?: number; caffeineMg?: number; portions?: Portion[]; count?: boolean; stepper?: number; estimate?: boolean };
+// Foods with an `amount` are logged as a stepper tile: the amount starts at
+// the last one logged for that food and steps by `step` (pieces or a share of
+// a portion). Carbs are per piece (count) or per full portion (percent).
+export type Amount = { kind: 'count' | 'percent'; step: number; min: number; max: number; start: number };
+export type Food = { id: string; label: string; text: string; carbsG?: number; caffeineMg?: number; amount?: Amount; estimate?: boolean };
+
+const GUMMY_CARBS = Math.round(22.3 / 3 * 100) / 100; // 3 gummies = 22.3 g (her crew plan)
 
 export const FOODS: Food[] = [
   { id: 'gel', label: 'Gel', text: '1 regular Maurten Gel 100 (non-caffeinated)', carbsG: 25 },
-  { id: 'gummies', label: '3 gummies', text: '3 Party Fred gummies', carbsG: 22.3 },
   { id: 'caf-gel', label: 'CAF gel', text: 'Maurten Gel 100 CAF 100', carbsG: 25, caffeineMg: 100 },
-  { id: 'solid-c', label: 'Solid C 160', text: 'Maurten Solid C 160', carbsG: 40, caffeineMg: 50, portions: [{ label: '20%', factor: 0.2 }, { label: '50%', factor: 0.5 }, { label: 'Full', factor: 1 }] },
-  { id: 'palaleib', label: 'Palaleib + ham', text: 'palaleib with ham and pickle', carbsG: 15, count: true, portions: [1, 2, 3, 4].map(n => ({ label: `${n}`, factor: n })) },
-  { id: 'potato-half', label: 'Small potato halves', text: 'small potato halves', carbsG: POTATO_HALF_CARBS, estimate: true, portions: [1, 2, 3, 4, 6, 8].map(n => ({ label: `${n}`, factor: n })) },
-  { id: 'foodpack', label: 'Chicken & noodles', text: 'Tactical Foodpack chicken & noodles (514 kcal portion)', carbsG: 56, stepper: 0.1 },
+  { id: 'gummies', label: 'Gummies', text: 'Party Fred gummies', carbsG: GUMMY_CARBS, amount: { kind: 'count', step: 1, min: 1, max: 20, start: 3 } },
+  { id: 'palaleib', label: 'Palaleib + ham', text: 'palaleib with ham and pickle', carbsG: 15, amount: { kind: 'count', step: 1, min: 1, max: 6, start: 1 } },
+  { id: 'potato-half', label: 'Potato halves', text: 'small potato halves', carbsG: POTATO_HALF_CARBS, estimate: true, amount: { kind: 'count', step: 1, min: 1, max: 12, start: 2 } },
+  { id: 'solid-c', label: 'Solid C 160', text: 'Maurten Solid C 160', carbsG: 40, caffeineMg: 50, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
+  { id: 'foodpack', label: 'Chicken & noodles', text: 'Tactical Foodpack chicken & noodles (514 kcal portion)', carbsG: 56, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
   { id: 'banana', label: '½ banana', text: '½ banana, cut into 3 bite-size pieces', carbsG: 13.5 },
   { id: 'orange', label: '4 orange segments', text: '4 peeled orange segments' },
   { id: 'potatoes', label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl' },
@@ -41,23 +46,39 @@ export const FOODS: Food[] = [
 
 export const PRESET_TEXTS = new Set(FOODS.map(f => f.text));
 
-/** Entry text and carbs for a portion of a food. */
+/** Entry text and carbs for an amount of a food (pieces, or share of a portion). */
 export function portionOf(food: Food, factor: number): { text: string; carbsG?: number } {
   const carbsG = food.carbsG === undefined ? undefined : Math.round(food.carbsG * factor * 10) / 10;
   if (food.id === 'potato-half') return { text: `${factor} ${factor === 1 ? 'small potato half' : 'small potato halves'}`, carbsG };
-  if (food.count) return { text: `${factor} × ${food.text}`, carbsG };
+  if (food.amount?.kind === 'count') return { text: `${factor} × ${food.text}`, carbsG };
   if (factor === 1) return { text: food.text, carbsG };
   return { text: `${food.text} · ${Math.round(factor * 100)}%`, carbsG };
 }
 
-// Lap bottle: 250 ml of plain water on every loop. One tap logs what came back
-// drunk (usually most of it), always as water, whatever drink is selected.
-export const LAP_BOTTLE_AMOUNTS = [100, 150, 200, 250];
-// Drink amounts for the selected drink, in 100 ml steps.
-export const DRINK_AMOUNTS: { ml: number; label: string }[] = [
-  { ml: 100, label: '+100 ml' }, { ml: 200, label: '+200 ml' },
-  { ml: 300, label: '+300 ml' }, { ml: 400, label: '+400 ml' }, { ml: 500, label: '+500 ml' },
+/** The amount in a logged entry's text for this food, or null if it is another food. */
+export function amountIn(food: Food, entryText: string): number | null {
+  const t = entryText.replace('Ate prepared food: ', '').trim();
+  const esc = food.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (food.id === 'potato-half') { const m = /^(\d+) small potato hal(f|ves)$/.exec(t); return m ? Number(m[1]) : null; }
+  if (food.amount?.kind === 'count') {
+    const m = new RegExp(`^(\\d+)( ×)? ${esc}$`).exec(t); // "4 × Party Fred gummies", older "3 Party Fred gummies"
+    return m ? Number(m[1]) : null;
+  }
+  if (t === food.text) return 1;
+  const m = new RegExp(`^${esc} · (\\d+)%$`).exec(t);
+  return m ? Number(m[1]) / 100 : null;
+}
+
+// Lap bottle: 250 ml of plain water on every loop. One tap on her return says
+// what came BACK; the app logs what she drank (water).
+export const LAP_BOTTLE_ML = 250;
+export const LAP_BOTTLE_LEFT: { label: string; left: number }[] = [
+  { label: 'Empty', left: 0 }, { label: '¼ left', left: 0.25 }, { label: '½ left', left: 0.5 }, { label: '¾ left', left: 0.75 },
 ];
+export const lapBottleDrunk = (left: number) => Math.round(LAP_BOTTLE_ML * (1 - left));
+// Station drinks: stepper in 50 ml steps, starting at the last amount logged
+// for that drink.
+export const DRINK_STEP = { step: 50, min: 50, max: 750, start: 150 };
 
 /** Caffeine in a logged food entry, from the catalogue (portion-aware). */
 export function caffeineOf(text: string): number {

@@ -409,3 +409,16 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .log .card h2 { font-size: 16px; }
 .log .portion-title { font-size: 13px; }
 .log .entry { font-size: 14px; }
+
+/* Stepper tiles: [−] [ Log <amount> · carbs ] [+]. The amount starts at the
+   last one logged; tapping the middle logs it. */
+.food-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.food-grid .stepper-tile { grid-column: 1 / -1; }
+.stepper-tile { display: grid; grid-template-columns: 46px 1fr 46px; gap: 6px; align-items: stretch; }
+.stepper-tile .step { border-radius: 10px; background: #26272c; border: 1px solid #33343a; color: var(--text); font: inherit; font-size: 22px; font-weight: 600; cursor: pointer; }
+.stepper-tile .step:disabled { opacity: .35; cursor: not-allowed; }
+.log .big-btn.log-amount { text-align: center; }
+.log .big-btn.log-amount small, .log .food-grid .big-btn small { display: block; margin-top: 1px; }
+.stepper-tile.drink .log-amount { background: var(--lap); color: var(--on-accent); }
+.stepper-tile.drink .log-amount:disabled { background: #26272c; color: var(--muted); }
+.lap-bottle small { opacity: .7; }
