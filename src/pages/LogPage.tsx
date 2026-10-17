@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Login } from '../components/Login';
 import type { RaceLog } from '../App';
-import { DRINKS, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
+import { DRINKS, DRINK_ORDER, drinkEntry, raceIntakeRecords, type DrinkKind } from '../lib/intakeAdvice';
 import { computeLapClock, formatClock, raceStartUtc } from '../lib/raceClock';
 import { eventToRow, rowsFromHQ, type Op } from '../lib/raceLog';
 import { parseHQExport } from '../lib/importHQ';
@@ -130,7 +130,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       <h2>Drink</h2>
       <select value={drink} onChange={e => { setDrink(e.target.value as DrinkKind); setLabel(''); try { localStorage.setItem(LAST_DRINK_KEY, e.target.value); } catch { /* fine */ } }}>
         <option value="">Choose drink</option>
-        {(Object.keys(DRINKS) as DrinkKind[]).map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
+        {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
       </select>
       {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
       <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>

@@ -1,5 +1,8 @@
 import type { IntakeEvent, YardRecord } from './raceHQ';
 export type DrinkKind = 'water' | 'varska' | '160' | '320' | 'arctic-greip' | 'arctic-apple' | 'oshee' | 'cido' | 'other';
+// Dropdown order: her lap drinks first. (Object key order can't be used: JS
+// lists number-like keys such as '160' before the others.)
+export const DRINK_ORDER: DrinkKind[] = ['water', 'varska', '160', '320', 'arctic-greip', 'arctic-apple', 'oshee', 'cido', 'other'];
 export const DRINKS: Record<DrinkKind, { label: string; carbsPer500?: number }> = {
   water: { label: 'Plain water', carbsPer500: 0 },
   // Värska Originaal: natural mineral water, no sugar.
