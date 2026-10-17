@@ -305,3 +305,31 @@ button.link, a.link { font-size: 15px; }
 .sub-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; font-size: min(14px, 1.9vw); color: var(--text-2); white-space: nowrap; }
 .sub-line .temp { color: var(--text); font-weight: 600; }
 .sub-line .stale { color: var(--muted); font-weight: 500; }
+
+/* Top row bigger now the status strip is gone. */
+.hero { font-size: min(60px, 7.4vw) !important; }
+.km { font-size: min(24px, 3vw); }
+.time-line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; white-space: nowrap; }
+.hero.temp { color: var(--text-2); }
+.hero.temp.stale { color: var(--muted); }
+.stats { grid-template-columns: 0.9fr 1.8fr 1.05fr; }
+
+/* Final 3 minutes: blurred screen, big red countdown, springs in. */
+.final-countdown { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 11, 13, .55); -webkit-backdrop-filter: blur(18px) saturate(120%); backdrop-filter: blur(18px) saturate(120%);
+  -webkit-animation: fc-fade .35s ease-out both; animation: fc-fade .35s ease-out both; }
+.final-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 44px 22px; border-radius: 32px;
+  background: rgba(30, 31, 36, .72); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 30px 80px rgba(0,0,0,.55);
+  -webkit-animation: fc-spring .6s cubic-bezier(.2, 1.4, .35, 1) both; animation: fc-spring .6s cubic-bezier(.2, 1.4, .35, 1) both; }
+.final-label { font-size: 22px; color: var(--text-2); font-weight: 500; }
+.final-number { font-size: min(220px, 26vw); line-height: 1; font-weight: 700; color: #ff4d3d; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.final-hint { font-size: 14px; color: var(--muted); }
+@-webkit-keyframes fc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fc-fade { from { opacity: 0; } to { opacity: 1; } }
+@-webkit-keyframes fc-spring { from { opacity: 0; -webkit-transform: scale(.82) translateY(24px); } to { opacity: 1; -webkit-transform: none; } }
+@keyframes fc-spring { from { opacity: 0; transform: scale(.82) translateY(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .final-countdown, .final-card { -webkit-animation: none; animation: none; } }
+
+/* Folding card header (Notes). */
+.fold { display: flex; justify-content: space-between; align-items: center; width: 100%; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.fold span { color: var(--muted); font-size: 14px; }

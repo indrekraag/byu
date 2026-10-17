@@ -38,6 +38,7 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const [picker, setPicker] = useState<Food | null>(null);
   const [step, setStep] = useState(1);
   const [editing, setEditing] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   useEffect(() => { if (!flash) return; const id = setTimeout(() => setFlash(''), 4000); return () => clearTimeout(id); }, [flash]);
 
   if (!log.authReady) return <div className="log"><p className="muted">Loading…</p></div>;
@@ -164,8 +165,8 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
     </section>
 
     <section className="card">
-      <h2>Notes</h2>
-      <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>
+      <button className="fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(o => !o)}><h2>Notes</h2><span>{notesOpen ? 'Hide' : 'Show'}</span></button>
+      {notesOpen && <div className="row four">{NOTES.map(n => <button key={n.text} className="big-btn secondary" disabled={!started} onClick={() => { add({ type: 'intake', row: { id: uuid(), yard, at: new Date().toISOString(), kind: null, drink_kind: null, ml: null, carbs_g: null, text: `${NOTE_PREFIX}${n.text}`, source: 'dashboard', deleted_at: null } }); setFlash(`Note: ${n.text} · yard ${yard}`); }}>{n.text}</button>)}</div>}
     </section>
 
     <section className="card">
