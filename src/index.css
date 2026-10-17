@@ -663,3 +663,5 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .log-hero .progress { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.06); }
 .log-hero .meter-label { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .log-hero .sync { margin: 8px 0 0; font-size: 12px; }
+/* Full-screen clock: the time is the hero; next start a step smaller. */
+.fc-figures > div:last-child .fc-num { font-size: min(96px, 12.5vw); }
