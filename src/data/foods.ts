@@ -12,6 +12,12 @@
 // - Small new potato: boiled with skin ≈ 15 g carbs per 100 g (UK PHE data via
 //   caloriecounter.com.au). Weight ASSUMED 50 g per potato → ½ ≈ 3.75 g.
 //   Replace POTATO_G with a weighed potato when possible.
+// - Orange, raw: 11.8 g carbs/100 g (USDA FDC 169097); medium orange ~131 g in
+//   ~10 segments → 4 segments ≈ 52 g ≈ 6.1 g (segment weight estimated).
+// - Boiled potatoes: 15 g/100 g (new potatoes, UK PHE; floury up to ~20 g).
+// - Mashed potato with milk and butter: 16.8 g/100 g (USDA FDC 168555).
+// - Bread + jam: 30 g white bread at 50.6 g/100 g (USDA) = 15.2 g, plus 10 g
+//   jam at 68.9 g/100 g (USDA FDC 2710301) = 6.9 g → 22.1 g.
 // - Palaleib (bread piece with a slice of ham and pickle): 15 g carbs per
 //   piece, the crew's own figure; ham and pickle ≈ 0 g.
 // - Caffeine: Maurten Gel 100 CAF 100 = 25 g carbs + 100 mg caffeine (Maurten).
@@ -38,10 +44,10 @@ export const FOODS: Food[] = [
   { id: 'solid-c', label: 'Solid C 160', text: 'Maurten Solid C 160', carbsG: 40, caffeineMg: 50, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
   { id: 'foodpack', label: 'Chicken & noodles', text: 'Tactical Foodpack chicken & noodles (514 kcal portion)', carbsG: 56, amount: { kind: 'percent', step: 0.1, min: 0.1, max: 1, start: 0.5 } },
   { id: 'banana', label: '½ banana', text: '½ banana, cut into 3 bite-size pieces', carbsG: 13.5 },
-  { id: 'orange', label: '4 orange segments', text: '4 peeled orange segments' },
-  { id: 'potatoes', label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl' },
-  { id: 'mash', label: 'Mash 100 g', text: '100 g prepared familiar mash in 1 bowl' },
-  { id: 'bread', label: 'Bread + jam', text: '30 g white bread + 10 g familiar smooth jam' },
+  { id: 'orange', label: '4 orange segments', text: '4 peeled orange segments', carbsG: 6.1, estimate: true },
+  { id: 'potatoes', label: 'Potatoes 100 g', text: '100 g cooked boiled potatoes in 1 bowl', carbsG: 15 },
+  { id: 'mash', label: 'Mash 100 g', text: '100 g prepared familiar mash in 1 bowl', carbsG: 16.8 },
+  { id: 'bread', label: 'Bread + jam', text: '30 g white bread + 10 g familiar smooth jam', carbsG: 22.1 },
 ];
 
 export const PRESET_TEXTS = new Set(FOODS.map(f => f.text));
