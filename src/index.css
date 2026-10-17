@@ -562,3 +562,7 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .drink-card h2 { color: #8fc2f2; }
 .stepper-tile.drink .log-amount { color: #0b1622; }
 [data-look="charcoal"] .big-btn.lap-bottle { background: rgba(74, 155, 232, .16); color: var(--text); border: 1px solid var(--fluid); }
+/* Lap time: neutral silver-white (pink rejected by the owner). Every hue
+   already has a meaning, so the main line stays neutral. */
+:root[data-look="charcoal"] { --lap: #e6e4df; }
+.stop-lap-a { stop-opacity: .18; }
