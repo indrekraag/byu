@@ -143,11 +143,11 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
     {started && active && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
-      <div className="stat"><span className="label">Time{weather ? ' · Keila' : ''}</span>
+      <div className="stat">
         <span className="time-line">
           <strong className="hero">{timeWithSeconds(now)}</strong>
-          {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'}>{Math.round(weather.tempC)}°</strong>}
           <span className="sun">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
+          {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'} title="Keila">{Math.round(weather.tempC)}°</strong>}
         </span>
       </div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
