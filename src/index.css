@@ -514,3 +514,9 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stats.quiet .stat { flex: 0 0 auto; padding-left: 0; padding-right: 0; }
 .stats.quiet .stat + .stat { border-left: 0 !important; }
 .stats.quiet > .sep { display: block; flex: 0 0 1px; align-self: stretch; margin: 6px 0; background: rgba(255,255,255,.24); }
+/* Equal space everywhere, outer edges included, so Yard and Next start sit
+   centred in their regions; more air around the sun times and temperature. */
+.stats.quiet { justify-content: space-evenly; }
+.stats.quiet .hero { font-size: min(54px, 7vw) !important; }
+.stats.quiet .time-line { gap: 28px; height: min(54px, 7vw); }
+.stats.quiet .sun { gap: 4px; }
