@@ -91,7 +91,7 @@ export function caffeineOf(text: string): number {
 
 // One-tap notes per yard; short tag is what the lap chart shows.
 export const NOTES: { text: string; tag: string }[] = [
-  { text: 'Stomach', tag: 'GI' }, { text: 'Feet', tag: 'Feet' }, { text: 'Tired', tag: 'Tired' }, { text: 'Low mood', tag: 'Mood' },
+  { text: 'Stomach', tag: 'GI' }, { text: 'Headache', tag: 'Head' }, { text: 'Feet', tag: 'Feet' }, { text: 'Tired', tag: 'Tired' }, { text: 'Low mood', tag: 'Mood' },
   { text: 'Cold', tag: 'Cold' }, { text: 'Hot', tag: 'Hot' }, { text: 'Nap', tag: 'Nap' }, { text: 'Toilet', tag: 'WC' },
 ];
 export const noteTag = (text: string) => NOTES.find(n => n.text === text)?.tag ?? text.slice(0, 5);

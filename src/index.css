@@ -422,3 +422,21 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stepper-tile.drink .log-amount { background: var(--lap); color: var(--on-accent); }
 .stepper-tile.drink .log-amount:disabled { background: #26272c; color: var(--muted); }
 .lap-bottle small { opacity: .7; }
+
+/* Dashboard: current-yard time bar (loop amber, rest mint, plan band marks). */
+.yardbar { margin: 0 2px 10px; }
+.yardbar-track { position: relative; height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; }
+.yardbar-track > span { position: absolute; top: 0; bottom: 0; }
+.yb-plan { background: rgba(255,255,255,.14); }
+.yb-loop { left: 0; background: var(--lap); border-radius: 4px 0 0 4px; }
+.yb-rest { background: var(--fluid); }
+.yb-now { width: 2px; margin-left: -1px; background: var(--text); }
+.yardbar-text { display: flex; justify-content: space-between; margin-top: 5px; font-size: 14px; color: var(--text-2); }
+.yardbar-text b { color: var(--text); font-weight: 600; }
+/* Log page: carbs and fluid meters in the pinned card. */
+.progress { gap: 6px; }
+.meter { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); }
+.meter-label { color: var(--muted); }
+.meter-value b { color: var(--text); }
+.progress .fill.fluid { background: #3a8fd6; }
+.progress .fill.fluid.ok { background: var(--fluid); }

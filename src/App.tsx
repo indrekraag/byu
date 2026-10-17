@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { CarbsPerYard, Cumulative, LapChart } from './components/Charts';
 import { useOfficialLaps } from './hooks/useOfficialLaps';
-import { intakeSeries, lapSeries } from './lib/dashData';
+import { intakeSeries, lapSeries, planBand } from './lib/dashData';
 import { loadImported, parseHQExport, saveImported, type ImportedIntake } from './lib/importHQ';
 import { computeLapClock, formatClock, raceStartUtc } from './lib/raceClock';
 import { RACE } from './data/raceConfig';
@@ -11,6 +11,7 @@ import { LogPage } from './pages/LogPage';
 import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
 import { hardRefresh, refresh } from './lib/refresh';
+import { RESTORE_KEY } from './lib/autoUpdate';
 import { useWeather } from './hooks/useWeather';
 import { nextSunEvents } from './lib/sun';
 import { KEILA } from './lib/weather';
@@ -30,13 +31,23 @@ function App() {
   const log = useRaceLog();
   useEffect(() => applyLook(), []);
   const pager = useRef<HTMLDivElement>(null);
-  const [page, setPage] = useState(() => location.hash === '#log' ? 1 : 0);
+  // Where to land after a reload: the saved restore point, else the URL hash.
+  const restore = useMemo(() => { try { const r = JSON.parse(sessionStorage.getItem(RESTORE_KEY) || 'null'); sessionStorage.removeItem(RESTORE_KEY); return r && Date.now() - r.at < 10 * 60_000 ? r as { log: boolean; pages: number[] } : null; } catch { return null; } }, []);
+  const [page, setPage] = useState(() => restore ? (restore.log ? 1 : 0) : location.hash === '#log' ? 1 : 0);
   const goTo = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
   useEffect(() => {
     const el = pager.current; if (!el) return;
-    if (page === 1) el.scrollLeft = el.clientWidth;
+    // Re-apply the start page and scroll positions once layout has settled:
+    // iOS can snap the pager back to page 1 on load. Ignore that early snap.
+    const startPage = page;
+    const place = () => {
+      el.scrollLeft = startPage * el.clientWidth;
+      if (restore) el.querySelectorAll<HTMLElement>('.page').forEach((p, i) => { p.scrollTop = restore.pages[i] ?? 0; });
+    };
+    place(); requestAnimationFrame(place); const t1 = setTimeout(place, 250), t2 = setTimeout(place, 900);
+    const settledAt = Date.now() + 1000;
     let t: ReturnType<typeof setTimeout>;
-    const onScroll = () => { clearTimeout(t); t = setTimeout(() => {
+    const onScroll = () => { if (Date.now() < settledAt) return; clearTimeout(t); t = setTimeout(() => {
       const i = Math.round(el.scrollLeft / el.clientWidth); setPage(i);
       history.replaceState(null, '', i === 1 ? '#log' : location.pathname + location.search);
     }, 80); };
@@ -45,7 +56,7 @@ function App() {
     el.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('hashchange', onHash);
     window.addEventListener('resize', onResize);
-    return () => { el.removeEventListener('scroll', onScroll); window.removeEventListener('hashchange', onHash); window.removeEventListener('resize', onResize); };
+    return () => { clearTimeout(t1); clearTimeout(t2); el.removeEventListener('scroll', onScroll); window.removeEventListener('hashchange', onHash); window.removeEventListener('resize', onResize); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <>
     <div className="top-cap" aria-hidden="true" />
@@ -152,6 +163,7 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
       </div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
     </header>
+    {started && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
 
 
     <section className="panel">
@@ -232,6 +244,28 @@ function SunIcon({ rise }: { rise: boolean }) {
  *  own equal slot and a ticking clock never shifts what is next to it. */
 function Digits({ text }: { text: string }) {
   return <>{[...text].map((c, i) => <span key={i} className={/[0-9]/.test(c) ? 'dg' : 'dg-sep'}>{c}</span>)}</>;
+}
+
+/** The current yard's hour as one thin bar: her loop (amber), her rest so far
+ *  (mint) and what is left until the next start (track), with her plan band. */
+function YardBar({ clock, lap }: { clock: ReturnType<typeof computeLapClock>; lap?: { lapMs: number } }) {
+  const hour = RACE.lapWindowMin * 60_000;
+  const elapsed = hour - clock.msToNextLap;
+  const pct = (ms: number) => `${Math.max(0, Math.min(100, ms / hour * 100))}%`;
+  const band = planBand(clock.lapNumber);
+  const loopEnd = lap ? lap.lapMs : elapsed;
+  return <div className="yardbar" aria-label="Current yard">
+    <div className="yardbar-track">
+      <span className="yb-plan" style={{ left: pct((band.minMin ?? band.maxMin) * 60_000), width: pct(((band.maxMin - (band.minMin ?? band.maxMin)) || 0.4) * 60_000) }} />
+      <span className="yb-loop" style={{ width: pct(loopEnd) }} />
+      {lap && <span className="yb-rest" style={{ left: pct(lap.lapMs), width: pct(Math.max(0, elapsed - lap.lapMs)) }} />}
+      <span className="yb-now" style={{ left: pct(elapsed) }} />
+    </div>
+    <div className="yardbar-text">
+      <span>{lap ? <>Back <b><Digits text={formatClock(lap.lapMs)} /></b> · resting <b><Digits text={formatClock(Math.max(0, elapsed - lap.lapMs))} /></b></> : <>Out <b><Digits text={formatClock(elapsed)} /></b></>}</span>
+      <span className="muted">plan {band.minMin ? `${band.minMin}–${band.maxMin}` : `≤${band.maxMin}`} min</span>
+    </div>
+  </div>;
 }
 
 export default App;

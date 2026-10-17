@@ -32,8 +32,10 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
   const yard = Math.max(1, clock.lapNumber + yardOffset);
   const [drink, setDrink] = useState<DrinkKind | ''>(() => { try { const v = localStorage.getItem(LAST_DRINK_KEY); return v && v in DRINKS ? v as DrinkKind : ''; } catch { return ''; } });
   const [label, setLabel] = useState('');
-  const [foodText, setFoodText] = useState('');
-  const [foodCarbs, setFoodCarbs] = useState('');
+  // Typed-in food survives a reload (kept for this browser session).
+  const [foodText, setFoodText] = useState(() => { try { return sessionStorage.getItem('byu-dash:draft-food') ?? ''; } catch { return ''; } });
+  const [foodCarbs, setFoodCarbs] = useState(() => { try { return sessionStorage.getItem('byu-dash:draft-carbs') ?? ''; } catch { return ''; } });
+  useEffect(() => { try { sessionStorage.setItem('byu-dash:draft-food', foodText); sessionStorage.setItem('byu-dash:draft-carbs', foodCarbs); } catch { /* fine */ } }, [foodText, foodCarbs]);
   const [flash, setFlash] = useState('');
   // Stepper values the user has nudged but not logged yet; otherwise each
   // starts at the last amount logged for that food / drink.
@@ -148,9 +150,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         </div>
         <div className="log-clock"><span className="label">Next start</span><strong className={started ? countdownClass(clock.msToNextLap) : undefined}>{started ? formatClock(clock.msToNextLap) : '—'}</strong></div>
       </header>
-      <div className="progress" aria-label={`Yard ${yard}: ${Math.round(totals.carbs)} grams of ${target.carbMin} to ${target.carbMax}`}>
-        <span><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> of {target.carbMin}–{target.carbMax} · <b>{totals.fluid} ml</b></span>
-        <span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span>
+      <div className="progress">
+        <div className="meter"><span className="meter-label">Carbs</span><span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span><span className="meter-value"><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> / {target.carbMin}–{target.carbMax}</span></div>
+        <div className="meter"><span className="meter-label">Fluid</span><span className="bar"><span className={totals.fluid >= target.fluidMin ? 'fill fluid ok' : 'fill fluid'} style={{ width: `${Math.min(100, totals.fluid / target.fluidMax * 100)}%` }} /></span><span className="meter-value"><b>{totals.fluid} ml</b> / {target.fluidMin}–{target.fluidMax}</span></div>
       </div>
       <p className={log.error || log.pending ? 'sync warn' : 'sync'}>{log.pending ? `${log.pending} not sent yet · ` : 'All saved · '}{log.error || (log.loadedAt ? `synced ${hhmm(log.loadedAt.toISOString())}` : 'connecting…')}</p>
       {yardOffset !== 0 && <p className="warn">Logging to an earlier yard. <button className="link" onClick={() => setYardOffset(0)}>Back to current</button></p>}
