@@ -360,3 +360,17 @@ button.link, a.link { font-size: 15px; }
 .target.carbs { stroke: var(--carbs-a); }
 .target.fluid { stroke: var(--fluid); }
 svg text.target-label { fill: var(--muted); font-size: 13px; }
+
+/* Top cards: everything centred. Time card: time · temperature · sun times on one line. */
+.stats { grid-template-columns: 0.68fr 2.32fr 1fr; }
+.stat { align-items: center; justify-content: center; text-align: center; min-height: 150px; }
+:root:not([data-look="default"]) .stat, [data-look="charcoal"] .stat { padding: 12px 12px 11px; }
+.hero { font-size: min(56px, 7.3vw) !important; }
+.yard-line { justify-content: center; }
+.km { font-size: min(20px, 2.6vw); }
+.time-line { justify-content: center; align-items: center; gap: 12px; }
+.sun { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-size: min(15px, 2vw); color: var(--text-2); font-weight: 500; }
+.sun > span { display: flex; align-items: center; gap: 4px; }
+.sun-icon { width: 17px; height: 17px; fill: none; stroke: var(--lap); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sun-icon { width: 21px; height: 21px; }
+.sun { font-size: min(16px, 2.1vw); gap: 3px; }

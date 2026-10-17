@@ -144,8 +144,11 @@ function Dashboard({ log, active, onLog }: { log: RaceLog; active: boolean; onLo
     <header className="stats">
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <div className="stat"><span className="label">Time{weather ? ' · Keila' : ''}</span>
-        <span className="time-line"><strong className="hero">{timeWithSeconds(now)}</strong>{weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'}>{Math.round(weather.tempC)}°</strong>}</span>
-        <span className="sub-line">{sunFirst.map(([name, at]) => <span key={name}>{name} {clockTime(at.toISOString())}</span>)}</span>
+        <span className="time-line">
+          <strong className="hero">{timeWithSeconds(now)}</strong>
+          {weather && <strong className={weatherStale ? 'hero temp stale' : 'hero temp'}>{Math.round(weather.tempC)}°</strong>}
+          <span className="sun">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
+        </span>
       </div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}>{formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())}</strong></div>
     </header>
@@ -214,6 +217,15 @@ function FinalCountdown({ msToNext, yard }: { msToNext: number; yard: number }) 
       <span className="final-hint">Tap to hide</span>
     </div>
   </div>;
+}
+
+/** Sun on the horizon with an arrow: up = sunrise, down = sunset. */
+function SunIcon({ rise }: { rise: boolean }) {
+  return <svg className="sun-icon" viewBox="0 0 24 24" aria-label={rise ? 'Sunrise' : 'Sunset'} role="img">
+    <path d="M6 17a6 6 0 0 1 12 0" />
+    <path d="M2 20h20M4.5 12.5l1.4 1.4M19.5 12.5l-1.4 1.4M12 7.5v1" />
+    <path d={rise ? 'M12 1.5v5M9.5 4 12 1.5 14.5 4' : 'M12 1.5v5M9.5 4 12 6.5 14.5 4'} />
+  </svg>;
 }
 
 export default App;
