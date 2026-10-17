@@ -85,8 +85,6 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot } = official;
-  // Top row: 'big' (default since 2026-10-17); ?top=quiet, ?top=current or ?top=heroes to compare (remembered per device).
-  const [top] = useState(() => { try { const q = new URLSearchParams(location.search).get('top'); if (q) localStorage.setItem('byu-dash:top', q); return localStorage.getItem('byu-dash:top') || 'big'; } catch { return 'big'; } });
   const weather = useWeather();
   // Published times (Open-Meteo) when we have them; on-device calculation otherwise.
   const calc = nextSunEvents(now, KEILA.lat, KEILA.lng);
@@ -170,20 +168,9 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
 
   return <div className="dash" ref={dashRef}>
     {started && active && !log.finished && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
-    {top === 'heroes' ? <>
-    {/* Preview (?top=heroes): two hero cards, details in a strip below. */}
-    <header className="stats heroes">
-      <div className="stat hero-card"><span className="label">Time</span><strong className="hero big"><Digits text={timeWithSeconds(now)} /></strong></div>
-      <div className="stat hero-card"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero big ${countdownClass(clock.msToNextLap)}` : 'hero big'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
-    </header>
-    <div className="info-strip">
-      <span><b>Yard {started ? clock.lapNumber : '—'}</b>{started && <> · {km.toFixed(1)} km</>}</span>
-      <span className="sun row">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
-      {weather && <span className={weatherStale ? 'stale' : undefined}><b>{Math.round(weather.tempC)}°</b> Keila</span>}
-    </div>
-    </> : <>
-    <div className={top === 'card' ? 'hero-panel' : 'hero-plain'}>
-    <header className={top === 'quiet' ? 'stats quiet' : top === 'big' ? 'stats quiet big' : top === 'card' ? 'stats quiet big carded' : 'stats'}>
+    {/* Top: one hero card (yard · time with sun + temperature · next start), the yard bar as its bottom edge. */}
+    <div className="hero-panel">
+    <header className="stats quiet big carded">
       <div className="stat"><span className="label">{finalLoops !== null ? 'Yards' : started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{finalLoops !== null ? finalLoops : started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <span className="sep" aria-hidden="true" />
       <div className="stat">
@@ -198,12 +185,10 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       <span className="sep" aria-hidden="true" />
       {finishedAt
         ? <div className="stat finished"><span className="label">Finished</span><strong className="hero"><Digits text={clockTime(finishedAt.toISOString())} /></strong></div>
-        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}${top === 'card' && clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
+        : <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>}
     </header>
-    {top === 'card' && started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
+    {started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
     </div>
-    </>}
-    {top !== 'card' && started && !log.finished && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
 
 
     <section className="panel">
