@@ -566,3 +566,5 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
    already has a meaning, so the main line stays neutral. */
 :root[data-look="charcoal"] { --lap: #e6e4df; }
 .stop-lap-a { stop-opacity: .18; }
+.note-tag line { stroke: rgba(255,255,255,.18); stroke-width: 1; }
+.note-tag text { font-size: 12px; }

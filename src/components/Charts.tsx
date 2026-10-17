@@ -125,10 +125,24 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
     {area && <path className="lap-area" d={area} />}
     <path className="lap-line" d={line} />
     {laps.map(p => <circle key={p.yard} className={p.source === 'official' ? 'lap-dot' : 'lap-dot manual'} cx={xOf(f, p.yard)} cy={y(p.lapMs / 60000)} r={modern && p !== last ? 4.5 : 6} />)}
-    {Object.entries(tags).map(([yd, list]) => list.slice(0, 3).map((t, i) => <g key={`${yd}-${t}`} className="note-tag">
-      <rect x={xOf(f, Number(yd)) - 25} y={f.h - f.b - 26 - i * 22} width={50} height={19} rx={9.5} />
-      <text x={xOf(f, Number(yd))} y={f.h - f.b - 12 - i * 22} textAnchor="middle">{t}</text>
-    </g>))}
+    {/* Note tags: each fits inside its own yard column; tags on neighbouring
+        yards stack upwards so they never run together into the next yard. */}
+    {(() => {
+      const w = Math.min(50, colW(f) - 6), step = 22, base = f.h - f.b - 26;
+      let level = 0, prev = -9;
+      return Object.entries(tags).map(([yd, list]) => [Number(yd), list] as const).sort((a, b) => a[0] - b[0]).flatMap(([yd, list]) => {
+        level = yd === prev + 1 ? level + list.length : 0; prev = yd;
+        const x = xOf(f, yd);
+        return list.slice(0, 3).map((t, i) => {
+          const y = base - (level - (list.length - 1) + i) * step;
+          return <g key={`${yd}-${t}`} className="note-tag">
+            <line x1={x} x2={x} y1={y + 19} y2={f.h - f.b} />
+            <rect x={x - w / 2} y={y} width={w} height={19} rx={9.5} />
+            <text x={x} y={y + 14} textAnchor="middle">{t}</text>
+          </g>;
+        });
+      });
+    })()}
     {last && (modern
       ? <Badge cls="badge-lap" x={Math.min(xOf(f, last.yard) + 14, f.w - f.r + 4)} y={y(last.lapMs / 60000)} text={formatClock(last.lapMs)} />
       : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}
