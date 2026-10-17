@@ -453,3 +453,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stop-carbs-b { stop-color: var(--carbs-a); stop-opacity: .6; }
 /* Stronger: like the lap chart's fill, but keeping a hint of the base. */
 .stop-carbs-b { stop-opacity: .18; }
+.backup-status { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 14px; color: var(--text-2); }

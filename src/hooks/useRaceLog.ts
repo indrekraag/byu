@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { toRecords, type IntakeRow, type Op, type ReturnRow } from '../lib/raceLog';
+import { journal, missingOnServer, snapshot } from '../lib/backup';
 
 // Every change goes to a device-local outbox first and is sent from there, so
 // a tap made with no signal at the venue is kept and retried, not lost.
@@ -47,6 +48,8 @@ export function useRaceLog() {
   const flushing = useRef(false);
   const flushStarted = useRef(0);
   const retrySoon = useRef(false);
+  const flushRef = useRef<(() => Promise<void>) | null>(null);
+  const [repaired, setRepaired] = useState(0);
   const [liveLink, setLiveLink] = useState(false);
 
   useEffect(() => {
@@ -68,6 +71,10 @@ export function useRaceLog() {
     }
     setIntake(a.data as IntakeRow[]); setReturns(b.data as ReturnRow[]); setLoadedAt(new Date()); setError('');
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ intake: a.data, returns: b.data, at: new Date().toISOString() })); } catch { /* memory only */ }
+    snapshot(a.data as IntakeRow[], b.data as ReturnRow[]);
+    // Self-repair: anything this device logged that the server lacks is re-sent.
+    const missing = missingOnServer(a.data as IntakeRow[], readOutbox());
+    if (missing.length) { const next = dedupe([...readOutbox(), ...missing]); writeOutbox(next); setOutbox(next); setRepaired(n => n + missing.length); setTimeout(() => void flushRef.current?.(), 500); }
   }, []);
 
   const flush = useCallback(async () => {
@@ -102,10 +109,12 @@ export function useRaceLog() {
     return () => { void supabase.removeChannel(channel); clearInterval(timer); document.removeEventListener('visibilitychange', wake); window.removeEventListener('online', wake); };
   }, [session, flush, load]);
 
+  useEffect(() => { flushRef.current = flush; }, [flush]);
   const enqueue = useCallback((...ops: Op[]) => {
+    journal(ops); // permanent device record, before anything else
     const next = dedupe([...readOutbox(), ...ops]); writeOutbox(next); setOutbox(next); void flush();
   }, [flush]);
 
   const records = useMemo(() => toRecords(intake, returns, outbox), [intake, returns, outbox]);
-  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, liveLink, enqueue, reload: flush };
+  return { session, authReady, records, intake, returns, pending: outbox.length, loadedAt, error, liveLink, repaired, enqueue, reload: flush };
 }

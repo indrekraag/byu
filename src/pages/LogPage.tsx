@@ -8,6 +8,7 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
+import { readJournal, readSnapshots, toCsv } from '../lib/backup';
 import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
@@ -88,10 +89,18 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       setFlash(`Importing ${intake.length} entries and ${returns.length} returns. Already-imported entries are skipped.`);
     } catch (err) { setFlash(err instanceof Error ? err.message : 'Import failed.'); }
   }
-  function exportJson() {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), yards: log.records }, null, 2)], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = `race-log-${new Date().toISOString().slice(0, 16).replace(':', '')}.json`; a.click(); URL.revokeObjectURL(url);
+  function download(name: string, body: string, type: string) {
+    const url = URL.createObjectURL(new Blob([body], { type }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
+  const stamp = () => new Date().toISOString().slice(0, 16).replace(':', '');
+  // Full backup: the server copy, by yard (Laura's app format), everything this
+  // device ever logged (journal), and the recent snapshots.
+  function exportJson() {
+    download(`race-log-${stamp()}.json`, JSON.stringify({ exportedAt: new Date().toISOString(), yards: log.records, rows: { intake: log.intake, returns: log.returns }, journal: readJournal(), snapshots: readSnapshots() }, null, 2), 'application/json');
+  }
+  function exportCsv() { download(`race-log-${stamp()}.csv`, toCsv(log.intake, log.returns), 'text/csv'); }
   const returned = log.records[yard]?.finish;
 
   const history = Object.values(log.records).flatMap(r => r.intake ?? []).sort((a, b) => b.at.localeCompare(a.at));
@@ -237,9 +246,23 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
       </section>
     </div>
 
+    <section className="card backup">
+      <h2>Backup</h2>
+      <p className="backup-status">
+        <span className={log.pending ? 'warn' : undefined}>{log.pending ? `${log.pending} waiting to send` : 'Everything sent'}</span>
+        <span>Server copy {log.loadedAt ? hhmm(log.loadedAt.toISOString()) : '—'} · {log.intake.length} entries</span>
+        <span>This device: {readJournal().length} logged · {readSnapshots().length} snapshots{readSnapshots().length ? ` (latest ${hhmm(readSnapshots()[readSnapshots().length - 1].at)})` : ''}</span>
+        {log.repaired > 0 && <span className="warn">Re-sent {log.repaired} entr{log.repaired === 1 ? 'y' : 'ies'} the server was missing</span>}
+      </p>
+      <div className="row two">
+        <button className="big-btn secondary" onClick={exportJson}>Download backup (JSON)</button>
+        <button className="big-btn secondary" onClick={exportCsv}>Download spreadsheet (CSV)</button>
+      </div>
+    </section>
+
     <section className="card tools">
       <label className="file-btn">Import from Laura's app<input type="file" accept=".json,application/json" onChange={importFile} /></label>
-      <button className="link" onClick={exportJson}>Export race log</button>
+
       {/* Returns come in automatically from the official timing; this is the fallback. */}
       <button className="link" disabled={!started} onClick={backNow}>{returned ? `Return ${hhmm(returned)} · set to now` : 'Log return now'}</button>
       <button className="link" onClick={onDashboard}>← Dashboard</button>
