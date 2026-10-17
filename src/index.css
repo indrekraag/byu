@@ -591,3 +591,4 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .panel h2.behind { color: #ff9d2e; }
 .behind-note { font-size: 14px; font-weight: 600; margin-left: 8px; color: #ff9d2e; }
 :root:not([data-look="default"]) .badge path { fill: var(--lap); }
+.note-tag line { stroke: rgba(255,255,255,.12); stroke-dasharray: 2 3; }

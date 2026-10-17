@@ -136,20 +136,22 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
     {area && <path className="lap-area" d={area} />}
     <path className="lap-line" d={line} />
     {laps.map(p => <circle key={p.yard} className={p.source === 'official' ? 'lap-dot' : 'lap-dot manual'} cx={xOf(f, p.yard)} cy={y(p.lapMs / 60000)} r={modern && p !== last ? 4.5 : 6} />)}
-    {/* Note tags: each fits inside its own yard column; tags on neighbouring
-        yards stack upwards so they never run together into the next yard. */}
+    {/* Note tags sit at the top of the chart (laps are rarely that slow), each
+        inside its own yard column, with a thin line down to its yard. Several
+        notes on one yard, or on neighbouring yards, stack downwards. */}
     {(() => {
-      const w = Math.min(50, colW(f) - 6), step = 22, base = f.h - f.b - 26;
-      let level = 0, prev = -9;
+      const w = Math.min(50, colW(f) - 6), step = 22, base = y(60) + 8;
+      let level = -1, prev = -9;
       return Object.entries(tags).map(([yd, list]) => [Number(yd), list] as const).sort((a, b) => a[0] - b[0]).flatMap(([yd, list]) => {
-        level = yd === prev + 1 ? level + list.length : 0; prev = yd;
+        const first = yd === prev + 1 ? level + 1 : 0; prev = yd;
+        level = first + Math.min(3, list.length) - 1;
         const x = xOf(f, yd);
         return list.slice(0, 3).map((t, i) => {
-          const y = base - (level - (list.length - 1) + i) * step;
+          const ty = base + (first + i) * step;
           return <g key={`${yd}-${t}`} className="note-tag">
-            <line x1={x} x2={x} y1={y + 19} y2={f.h - f.b} />
-            <rect x={x - w / 2} y={y} width={w} height={19} rx={9.5} />
-            <text x={x} y={y + 14} textAnchor="middle">{t}</text>
+            {i === list.slice(0, 3).length - 1 && <line x1={x} x2={x} y1={ty + 19} y2={f.h - f.b} />}
+            <rect x={x - w / 2} y={ty} width={w} height={19} rx={9.5} />
+            <text x={x} y={ty + 14} textAnchor="middle">{t}</text>
           </g>;
         });
       });
