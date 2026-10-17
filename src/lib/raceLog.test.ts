@@ -30,3 +30,12 @@ describe('rowsFromHQ', () => {
     expect(returns[0]).toEqual({ yard: 3, finish: '2026-10-17T14:49:00Z', lap_ms: 2940000, source: 'official' });
   });
 });
+
+describe('outbox dedupe', async () => {
+  const { dedupe } = await import('../hooks/useRaceLog');
+  it('collapses the same official lap written in two time formats', () => {
+    const a = { type: 'return' as const, row: { yard: 1, finish: '2026-10-17T12:47:30.000Z', lap_ms: 2850000, source: 'official' as const } };
+    const b = { type: 'return' as const, row: { ...a.row, finish: '2026-10-17T12:47:30+00:00' } };
+    expect(dedupe([a, b, a])).toHaveLength(1);
+  });
+});

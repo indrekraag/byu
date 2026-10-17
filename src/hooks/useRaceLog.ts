@@ -9,6 +9,12 @@ const OUTBOX_KEY = 'byu-dash:outbox:v1';
 const readOutbox = (): Op[] => { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') as Op[]; } catch { return []; } };
 const writeOutbox = (ops: Op[]) => { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(ops)); } catch { /* Kept in memory. */ } };
 
+// The same op queued twice (e.g. an official lap seen on two polls) is sent once.
+export function dedupe(ops: Op[]): Op[] {
+  const seen = new Set<string>();
+  return ops.filter(op => { const key = op.type === 'return' ? `return:${op.row.yard}:${op.row.source}:${Date.parse(op.row.finish)}` : JSON.stringify(op); if (seen.has(key)) return false; seen.add(key); return true; });
+}
+
 async function send(op: Op) {
   if (op.type === 'intake') return supabase.from('intake_events').upsert(op.row, { onConflict: 'id', ignoreDuplicates: true });
   if (op.type === 'undo') return supabase.from('intake_events').update({ deleted_at: op.at }).eq('id', op.id);
@@ -50,7 +56,8 @@ export function useRaceLog() {
     if (flushing.current) return;
     flushing.current = true;
     try {
-      let ops = readOutbox();
+      let ops = dedupe(readOutbox());
+      writeOutbox(ops); setOutbox(ops);
       while (ops.length) {
         const { error: err } = await send(ops[0]);
         if (err) { setError(navigator.onLine ? `Not saved yet: ${err.message}. Retrying.` : 'Offline: entries are kept on this phone and sent when back online.'); break; }
@@ -76,7 +83,7 @@ export function useRaceLog() {
   }, [session, flush, load]);
 
   const enqueue = useCallback((...ops: Op[]) => {
-    const next = [...readOutbox(), ...ops]; writeOutbox(next); setOutbox(next); void flush();
+    const next = dedupe([...readOutbox(), ...ops]); writeOutbox(next); setOutbox(next); void flush();
   }, [flush]);
 
   const records = useMemo(() => toRecords(intake, returns, outbox), [intake, returns, outbox]);

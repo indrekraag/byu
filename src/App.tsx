@@ -44,7 +44,8 @@ function Dashboard() {
   // Keep a permanent copy of each official lap in the crew log.
   useEffect(() => {
     if (!live || !snapshot) return;
-    const missing = snapshot.finishes.filter(f => log.returns.every(r => r.yard !== f.yard || r.source !== 'official' || r.finish !== f.at));
+    // Compare instants, not strings: the database returns +00:00, the feed .000Z.
+    const missing = snapshot.finishes.filter(f => !log.returns.some(r => r.yard === f.yard && r.source === 'official' && Date.parse(r.finish) === Date.parse(f.at)));
     if (missing.length && log.loadedAt) log.enqueue(...missing.map(f => ({ type: 'return' as const, row: { yard: f.yard, finish: f.at, lap_ms: f.lapMs, source: 'official' as const } })));
   }, [live, snapshot, log.returns, log.loadedAt]); // eslint-disable-line react-hooks/exhaustive-deps
   const stale = snapshot ? now.getTime() - Date.parse(snapshot.checkedAt) > 5 * 60000 : true;
