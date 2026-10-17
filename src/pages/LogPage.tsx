@@ -8,7 +8,7 @@ import { parseHQExport } from '../lib/importHQ';
 import { raceTime, validFinish } from '../lib/raceHQ';
 import { yardIntake } from '../lib/yardTargets';
 import { supabase } from '../lib/supabase';
-import { DRINK_AMOUNTS, FOODS, LAP_BOTTLE_ML, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
+import { DRINK_AMOUNTS, FOODS, LAP_BOTTLE_AMOUNTS, NOTES, PRESET_TEXTS, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { hardRefresh, refresh } from '../lib/refresh';
 import type { IntakeEvent } from '../lib/raceHQ';
@@ -137,7 +137,9 @@ export function LogPage({ log, onDashboard }: { log: RaceLog; onDashboard: () =>
         {DRINK_ORDER.map(k => <option key={k} value={k}>{DRINKS[k].label}</option>)}
       </select>
       {needsLabel && <input type="number" inputMode="decimal" min="0" max="100" step="any" placeholder="Carbs g / 100 ml from label (blank = unknown)" value={label} onChange={e => setLabel(e.target.value)} />}
-      <button className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(LAP_BOTTLE_ML, 'water')}>Lap bottle · water {LAP_BOTTLE_ML} ml</button>
+      <p className="portion-title">Lap bottle · water</p>
+      <div className="row four">{LAP_BOTTLE_AMOUNTS.map(ml => <button key={ml} className="big-btn lap-bottle" disabled={!started} onClick={() => addDrink(ml, 'water')}>{ml === 250 ? 'Full 250' : `${ml} ml`}</button>)}</div>
+      <p className="portion-title">Selected drink</p>
       <div className="row three">{DRINK_AMOUNTS.map(a => <button key={a.ml} className="big-btn" disabled={!started || !drink || !labelOk} onClick={() => addDrink(a.ml)}>{a.label}</button>)}</div>
     </section>
 

@@ -333,4 +333,4 @@ button.link, a.link { font-size: 15px; }
 /* Folding card header (Notes). */
 .fold { display: flex; justify-content: space-between; align-items: center; width: 100%; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
 .fold span { color: var(--muted); font-size: 14px; }
-.big-btn.lap-bottle { width: 100%; background: #26272c; color: var(--text); border: 1px solid var(--fluid); }
+.big-btn.lap-bottle { background: #26272c; color: var(--text); border: 1px solid var(--fluid); }
