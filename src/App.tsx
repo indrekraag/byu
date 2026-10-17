@@ -9,6 +9,7 @@ import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
 import { StatusFooter } from './components/StatusFooter';
 import { LogPage } from './pages/LogPage';
+import { Moments } from './components/Moments';
 import { applyLook } from './lib/look';
 import { countdownClass } from './lib/countdown';
 import { RESTORE_KEY } from './lib/autoUpdate';
@@ -30,6 +31,8 @@ export type RaceLog = ReturnType<typeof useRaceLog>;
 function App() {
   const log = useRaceLog();
   const official = useOfficialLaps();
+  const sunWeather = useWeather();
+  const sunriseNext = useMemo(() => { const now = new Date(); const pub = sunWeather?.sunrise?.map(v => new Date(v)).find(d => d.getTime() > now.getTime() - 20 * 60_000); return pub ?? nextSunEvents(now, KEILA.lat, KEILA.lng).sunrise; }, [sunWeather, Math.floor(Date.now() / 600_000)]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tick, setTick] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setTick(Date.now()), 5000); return () => clearInterval(id); }, []);
   const lapsStale = official.snapshot ? tick - Date.parse(official.snapshot.checkedAt) > 5 * 60000 : true;
@@ -69,6 +72,7 @@ function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return <>
     <div className="top-cap" aria-hidden="true" />
+    <Moments log={log} snapshot={official.snapshot} sunrise={sunriseNext} />
     <div className="pager" ref={pager}>
       <section className="page" aria-label="Dashboard"><Dashboard log={log} official={official} footer={footer} active={page === 0} /></section>
       <section className="page" aria-label="Log food and drink"><LogPage log={log} footer={footer} /></section>
@@ -139,6 +143,8 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const lastClosed = Math.max(0, ...intake.filter(p => doneYards.has(p.yard) && p.hasEntries).map(p => p.yard));
   const closed = intake.filter(p => p.yard <= lastClosed);
   const totals = closed[closed.length - 1];
+  // Behind on fuel: more than one yard (55 g) under the middle of her plan at the last finished yard.
+  const behind = totals ? (totals.cumCarbMin + totals.cumCarbMax) / 2 - totals.cumCarbs : 0;
   // Distance covered: completed loops, counting the current one once she is back.
   const tags: Record<number, string[]> = Object.fromEntries(Object.entries(records).filter(([, r]) => r.notes?.length).map(([yd, r]) => [Number(yd), [...new Set(r.notes!.map(n => noteTag(n.text)))]]));
   const loopsDone = clock.lapNumber - 1 + (laps.some(l => l.yard === clock.lapNumber) ? 1 : 0);
@@ -204,7 +210,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
     </section>
 
     {hasIntake && <section className="pair">
-      <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="carbs" modern={modern} /></div>
+      <div className="panel"><h2 className={behind > 55 ? 'behind' : undefined}>Total carbs{behind > 55 && <span className="behind-note">behind {Math.round(behind)} g</span>} <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="carbs" modern={modern} /></div>
       <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(2)} L</span></h2><Cumulative points={closed} plan={intake} yards={yards} kind="fluid" modern={modern} /></div>
     </section>}
 

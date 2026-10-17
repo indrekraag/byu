@@ -568,3 +568,25 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .stop-lap-a { stop-opacity: .18; }
 .note-tag line { stroke: rgba(255,255,255,.18); stroke-width: 1; }
 .note-tag text { font-size: 12px; }
+
+/* Moments: same blurred overlay as the final countdown. */
+.moment-card { gap: 10px; padding: 24px 34px 18px; max-width: min(620px, 92vw); }
+.milestone { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 18px; border-radius: 14px; background: rgba(67, 214, 170, .14); border: 1px solid rgba(67, 214, 170, .4); margin-bottom: 4px; }
+.milestone strong { font-size: 30px; color: var(--ok); }
+.milestone span { font-size: 16px; color: var(--text-2); text-align: center; }
+.moment-figures { display: flex; gap: 40px; }
+.moment-figures > div { display: flex; flex-direction: column; align-items: center; }
+.moment-figures span { font-size: 16px; color: var(--muted); }
+.moment-figures strong { font-size: min(84px, 11vw); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.moment-figures > div:first-child strong { color: var(--lap); }
+.moment-figures > div:last-child strong { color: var(--ok); }
+.moment-ask { font-size: 16px; color: var(--text-2); margin-top: 6px; }
+.moment-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; }
+.moment-buttons button { background: rgba(74, 155, 232, .18); border: 1px solid var(--fluid); color: var(--text); border-radius: 14px; padding: 14px 6px; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+.moment-buttons small { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); }
+.moment-done { font-size: 17px; color: var(--ok); font-weight: 600; }
+.moment-close { background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; text-decoration: underline; padding: 6px; cursor: pointer; }
+.moment-title { font-size: 44px; font-weight: 700; color: var(--food); }
+/* Behind on fuel: the Total carbs title says so, in orange. */
+.panel h2.behind { color: #ff9d2e; }
+.behind-note { font-size: 14px; font-weight: 600; margin-left: 8px; color: #ff9d2e; }
