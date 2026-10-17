@@ -8,7 +8,7 @@ import { RACE } from './data/raceConfig';
 import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
 import { LogPage } from './pages/LogPage';
-import { applyLook, initialLook, type Look } from './lib/look';
+import { applyLook } from './lib/look';
 
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
@@ -21,8 +21,7 @@ export type RaceLog = ReturnType<typeof useRaceLog>;
 // connection is shared so both pages never send the same outbox twice.
 function App() {
   const log = useRaceLog();
-  const [look, setLook] = useState<Look>(initialLook);
-  useEffect(() => applyLook(look), [look]);
+  useEffect(() => applyLook(), []);
   const pager = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(() => location.hash === '#log' ? 1 : 0);
   const goTo = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
@@ -44,18 +43,18 @@ function App() {
   return <>
     <div className="top-cap" aria-hidden="true" />
     <div className="pager" ref={pager}>
-      <section className="page" aria-label="Dashboard"><Dashboard log={log} look={look} onLog={() => goTo(1)} /></section>
-      <section className="page" aria-label="Log food and drink"><LogPage log={log} look={look} onLook={setLook} onDashboard={() => goTo(0)} /></section>
+      <section className="page" aria-label="Dashboard"><Dashboard log={log} onLog={() => goTo(1)} /></section>
+      <section className="page" aria-label="Log food and drink"><LogPage log={log} onDashboard={() => goTo(0)} /></section>
     </div>
     <nav className="dots" aria-label="Pages">{['Dashboard', 'Log'].map((label, i) => <button key={label} aria-label={label} aria-current={page === i} onClick={() => goTo(i)} />)}</nav>
   </>;
 }
 
-function Dashboard({ log, look, onLog }: { log: RaceLog; look: Look; onLog: () => void }) {
+function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
-  const modern = look !== 'default';
+  const modern = true;
   const live = !!log.session;
   const [imported, setImported] = useState<ImportedIntake | null>(loadImported);
   const [importMessage, setImportMessage] = useState('');
