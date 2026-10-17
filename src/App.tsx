@@ -261,10 +261,6 @@ function YardBar({ clock, lap }: { clock: ReturnType<typeof computeLapClock>; la
       {lap && <span className="yb-rest" style={{ left: pct(lap.lapMs), width: pct(Math.max(0, elapsed - lap.lapMs)) }} />}
       <span className="yb-now" style={{ left: pct(elapsed) }} />
     </div>
-    <div className="yardbar-text">
-      <span>{lap ? <>Back <b><Digits text={formatClock(lap.lapMs)} /></b> · resting <b><Digits text={formatClock(Math.max(0, elapsed - lap.lapMs))} /></b></> : <>Out <b><Digits text={formatClock(elapsed)} /></b></>}</span>
-      <span className="muted">plan {band.minMin ? `${band.minMin}–${band.maxMin}` : `≤${band.maxMin}`} min</span>
-    </div>
   </div>;
 }
 

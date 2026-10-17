@@ -456,3 +456,6 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .backup-status { display: flex; flex-direction: column; gap: 3px; margin: 0; font-size: 14px; color: var(--text-2); }
 /* Yards that reached the plan (50 g or more): figure gets a light green tint. */
 [data-look="charcoal"] svg text.bar-value.hit { fill: #a8ecd3; }
+/* Yard bar: no text line; centred in the gap, a little thicker. */
+.yardbar { margin: 2px 2px 12px; }
+.yardbar-track { height: 10px; border-radius: 5px; }
