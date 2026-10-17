@@ -62,3 +62,42 @@ svg text { fill: var(--text-2); font-size: 18px; }
 .status .warn { color: var(--warn); }
 .import { margin-left: auto; position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: var(--text-2); }
 .import input { position: absolute; inset: 0; opacity: 0; }
+
+/* Login (dashboard footer + phone) */
+.login { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
+.login.compact { flex-direction: row; flex-wrap: wrap; max-width: none; width: 100%; }
+.login.compact input { flex: 1 1 160px; }
+.login h2 { margin: 0; font-size: 26px; }
+input, select, button { font: inherit; }
+input, select { background: var(--page); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 18px; min-width: 0; }
+button { cursor: pointer; }
+.login button, .big-btn { background: #b8cddd; color: #18232d; border: 0; border-radius: 12px; padding: 14px 16px; font-size: 20px; font-weight: 700; }
+.big-btn.secondary { background: #292e35; color: var(--text); border: 1px solid #515963; }
+.big-btn:disabled, .login button:disabled { opacity: .4; cursor: not-allowed; }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+button.link { background: none; border: 0; color: var(--text-2); text-decoration: underline; padding: 10px 4px; font-size: 17px; }
+a.link { color: var(--text-2); font-size: 17px; padding: 10px 4px; }
+
+/* Phone logging page */
+.log { max-width: 560px; margin: 0 auto; padding: max(12px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+.log-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.yard-pick { display: flex; align-items: center; gap: 10px; }
+.yard-pick > div { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
+.yard-pick strong { font-size: 52px; line-height: 1; }
+.yard-pick button { width: 52px; height: 52px; border-radius: 26px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 28px; }
+.yard-pick button:disabled { opacity: .3; }
+.log-clock { text-align: right; display: flex; flex-direction: column; }
+.log-clock strong { font-size: 40px; }
+.sync { font-size: 15px; color: var(--muted); margin: 8px 0; }
+.flash { background: #1f3a2e; color: var(--text); border-radius: 10px; padding: 12px; font-size: 18px; margin: 8px 0; }
+.card { background: var(--surface); border-radius: 14px; padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+.card h2 { margin: 0; font-size: 20px; }
+.row { display: grid; gap: 8px; }
+.row.two { grid-template-columns: 1fr 1fr; }
+.row.three { grid-template-columns: 1fr 1fr 1fr; }
+.row.custom { grid-template-columns: 1fr 90px auto; }
+.entry { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 17px; border-top: 1px solid var(--line); padding-top: 6px; }
+.tools { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.file-btn { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; color: var(--text-2); font-size: 17px; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; }

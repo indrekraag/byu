@@ -57,3 +57,9 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   alter publication supabase_realtime add table public.yard_returns;
 exception when duplicate_object then null; end $$;
+
+-- Newer projects may not expose new tables to the API by default. Logged-in
+-- crew only; the anon role gets nothing.
+grant usage on schema public to authenticated;
+grant select, insert, update on public.intake_events, public.yard_returns to authenticated;
+revoke all on public.intake_events, public.yard_returns from anon;

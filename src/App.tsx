@@ -5,14 +5,25 @@ import { intakeSeries, lapSeries } from './lib/dashData';
 import { loadImported, parseHQExport, saveImported, type ImportedIntake } from './lib/importHQ';
 import { computeLapClock, formatClock, raceStartUtc } from './lib/raceClock';
 import { RACE } from './data/raceConfig';
+import { useRaceLog } from './hooks/useRaceLog';
+import { Login } from './components/Login';
+import { LogPage } from './pages/LogPage';
 
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
 
 function App() {
+  const [hash, setHash] = useState(() => location.hash);
+  useEffect(() => { const on = () => setHash(location.hash); window.addEventListener('hashchange', on); return () => window.removeEventListener('hashchange', on); }, []);
+  return hash === '#log' ? <LogPage /> : <Dashboard />;
+}
+
+function Dashboard() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
+  const log = useRaceLog();
+  const live = !!log.session;
   const [imported, setImported] = useState<ImportedIntake | null>(loadImported);
   const [importMessage, setImportMessage] = useState('');
 
@@ -20,14 +31,22 @@ function App() {
   const started = now >= start;
   const clock = computeLapClock(start, now);
   const yards = Math.max(12, clock.lapNumber);
-  const records = imported?.yards ?? {};
+  // Logged in: the shared crew log. Otherwise: the last imported export file.
+  const records = live ? log.records : imported?.yards ?? {};
+  const hasIntake = live || !!imported;
   // Recompute the charts once a minute, not every clock tick.
   const minute = Math.floor(now.getTime() / 60000);
-  const laps = useMemo(() => lapSeries(snapshot?.finishes ?? [], records, start, new Date(minute * 60000 + 59999)), [snapshot, imported, minute]); // eslint-disable-line react-hooks/exhaustive-deps
-  const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [imported, minute]); // eslint-disable-line react-hooks/exhaustive-deps
+  const laps = useMemo(() => lapSeries(snapshot?.finishes ?? [], records, start, new Date(minute * 60000 + 59999)), [snapshot, records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
+  const intake = useMemo(() => intakeSeries(records, start, new Date(minute * 60000 + 59999)), [records, minute]); // eslint-disable-line react-hooks/exhaustive-deps
   const last = laps[laps.length - 1];
   const totals = intake[intake.length - 1];
   const lastEntry = Object.values(records).flatMap(r => r.intake ?? []).map(e => e.at).sort().pop();
+  // Keep a permanent copy of each official lap in the crew log.
+  useEffect(() => {
+    if (!live || !snapshot) return;
+    const missing = snapshot.finishes.filter(f => log.returns.every(r => r.yard !== f.yard || r.source !== 'official' || r.finish !== f.at));
+    if (missing.length && log.loadedAt) log.enqueue(...missing.map(f => ({ type: 'return' as const, row: { yard: f.yard, finish: f.at, lap_ms: f.lapMs, source: 'official' as const } })));
+  }, [live, snapshot, log.returns, log.loadedAt]); // eslint-disable-line react-hooks/exhaustive-deps
   const stale = snapshot ? now.getTime() - Date.parse(snapshot.checkedAt) > 5 * 60000 : true;
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
@@ -52,18 +71,23 @@ function App() {
 
     <section className="panel">
       <h2>Carbs per yard <span className="unit">g · ? = unknown carbs logged</span></h2>
-      {imported ? <CarbsPerYard points={intake} yards={yards} /> : <p className="empty">No intake data yet. Import the crew export below.</p>}
+      {hasIntake ? <CarbsPerYard points={intake} yards={yards} /> : <p className="empty">No intake data yet. Log in below.</p>}
     </section>
 
-    {imported && <section className="pair">
+    {hasIntake && <section className="pair">
       <div className="panel"><h2>Total carbs <span className="total">{n(totals?.cumCarbs ?? 0)} g</span></h2><Cumulative points={intake} yards={yards} kind="carbs" /></div>
       <div className="panel"><h2>Total fluid <span className="total">{((totals?.cumFluid ?? 0) / 1000).toFixed(1)} L</span></h2><Cumulative points={intake} yards={yards} kind="fluid" /></div>
     </section>}
 
     <footer className="status">
       <span className={error || stale ? 'warn' : undefined}>Laps: {snapshot ? `official feed ${clockTime(snapshot.checkedAt)}` : 'waiting for feed'}{error ? ` · ${error}` : ''}</span>
-      <span>Intake: {imported ? `imported ${clockTime(imported.importedAt)}${lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}` : 'none'}{importMessage ? ` · ${importMessage}` : ''}</span>
-      <label className="import">Import crew export<input type="file" accept=".json,application/json" onChange={onFile} /></label>
+      {live
+        ? <span className={log.error || log.pending ? 'warn' : undefined}>Intake: live{log.loadedAt ? ` · synced ${clockTime(log.loadedAt.toISOString())}` : ' · connecting'}{lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}{log.pending ? ` · ${log.pending} unsent` : ''}{log.error ? ` · ${log.error}` : ''}</span>
+        : <>
+          <span>Intake: {imported ? `imported ${clockTime(imported.importedAt)}${lastEntry ? ` · last entry ${clockTime(lastEntry)}` : ''}` : 'none'}{importMessage ? ` · ${importMessage}` : ''}</span>
+          <label className="import">Import crew export<input type="file" accept=".json,application/json" onChange={onFile} /></label>
+          {log.authReady && <Login compact />}
+        </>}
     </footer>
   </div>;
 }
