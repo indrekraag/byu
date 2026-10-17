@@ -397,3 +397,7 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
   .log-cols > .card { margin-bottom: 10px; }
   .log-sticky .log-head, .log-sticky .progress, .log-sticky .sync { max-width: none; }
 }
+@media (min-width: 700px) {
+  .log-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .log-cols select { width: 100%; min-width: 0; }
+}
