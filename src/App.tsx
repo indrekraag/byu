@@ -81,6 +81,8 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot } = official;
+  // Preview of top-row designs: ?top=heroes | ?top=quiet (remembered per device; ?top=current resets).
+  const [top] = useState(() => { try { const q = new URLSearchParams(location.search).get('top'); if (q) localStorage.setItem('byu-dash:top', q); return localStorage.getItem('byu-dash:top') || 'current'; } catch { return 'current'; } });
   const weather = useWeather();
   // Published times (Open-Meteo) when we have them; on-device calculation otherwise.
   const calc = nextSunEvents(now, KEILA.lat, KEILA.lng);
@@ -159,7 +161,19 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
 
   return <div className="dash" ref={dashRef}>
     {started && active && <FinalCountdown msToNext={clock.msToNextLap} yard={clock.lapNumber + 1} />}
-    <header className="stats">
+    {top === 'heroes' ? <>
+    {/* Preview (?top=heroes): two hero cards, details in a strip below. */}
+    <header className="stats heroes">
+      <div className="stat hero-card"><span className="label">Time</span><strong className="hero big"><Digits text={timeWithSeconds(now)} /></strong></div>
+      <div className="stat hero-card"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero big ${countdownClass(clock.msToNextLap)}` : 'hero big'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
+    </header>
+    <div className="info-strip">
+      <span><b>Yard {started ? clock.lapNumber : '—'}</b>{started && <> · {km.toFixed(1)} km</>}</span>
+      <span className="sun row">{sunFirst.map(([name, at]) => <span key={name} title={name}><SunIcon rise={name === 'Sunrise'} />{clockTime(at.toISOString())}</span>)}</span>
+      {weather && <span className={weatherStale ? 'stale' : undefined}><b>{Math.round(weather.tempC)}°</b> Keila</span>}
+    </div>
+    </> : <>
+    <header className={top === 'quiet' ? 'stats quiet' : 'stats'}>
       <div className="stat"><span className="label">{started ? 'Yard' : 'Starts'}</span><span className="yard-line"><strong className="hero">{started ? clock.lapNumber : clockTime(start.toISOString())}</strong>{started && <span className="km">{km.toFixed(1)} km</span>}</span></div>
       <div className="stat">
         <span className="time-line">
@@ -170,6 +184,7 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
       </div>
       <div className="stat"><span className="label">{started ? 'Next start' : 'Countdown'}</span><strong className={started ? `hero ${countdownClass(clock.msToNextLap)}` : 'hero'}><Digits text={formatClock(started ? clock.msToNextLap : start.getTime() - now.getTime())} /></strong></div>
     </header>
+    </>}
     {started && <YardBar clock={clock} lap={laps.find(l => l.yard === clock.lapNumber)} />}
 
 

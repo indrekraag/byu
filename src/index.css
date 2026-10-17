@@ -475,3 +475,20 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .status.unified .import { margin-left: 0; flex-shrink: 0; }
 .tool-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
 .tool-links .file-btn { border: 0; padding: 10px 4px; font-size: 15px; text-decoration: underline; color: var(--text-2); }
+
+/* ---- Top-row previews ---- */
+/* Heroes: time and next start as two big cards, details in a strip. */
+.stats.heroes { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+.stats.heroes .hero-card { min-height: 0; padding: 14px 12px 12px; background: #202126; border: 1px solid rgba(255,255,255,.08); }
+.stats.heroes .label { font-size: 17px; }
+.hero.big { font-size: min(80px, 10.2vw) !important; font-weight: 700; line-height: 1; }
+.info-strip { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 6px 10px; font-size: min(22px, 2.9vw); color: var(--text-2); white-space: nowrap; }
+.info-strip b { color: var(--text); font-weight: 700; }
+.info-strip .sun.row { flex-direction: row; gap: 18px; font-size: inherit; }
+.info-strip .sun-icon { width: 24px; height: 24px; }
+.info-strip .stale b { color: var(--muted); }
+/* Quiet: same three cards, but the top row sits on the page (no card),
+   bigger and bolder; chart titles step back. */
+.stats.quiet .stat { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+.stats.quiet .hero { font-size: min(60px, 7.8vw) !important; font-weight: 700; }
+.stats.quiet ~ .panel h2, .stats.quiet ~ .pair .panel h2 { font-size: 15px; color: var(--text-2); }
