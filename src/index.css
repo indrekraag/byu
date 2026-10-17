@@ -188,3 +188,17 @@ button.import { background: none; font: inherit; color: var(--text); font-weight
 [data-look="charcoal"] .stat { padding: 10px 18px 8px; }
 [data-look="charcoal"] .hero { line-height: 1.1; }
 [data-look="charcoal"] .panel h2 { line-height: 1.35; }
+
+/* Carbs chart options (temporary comparison) */
+[data-look="charcoal"] svg text.bar-value { fill: var(--text); font-size: 17px; font-weight: 600; }
+[data-look="charcoal"] .carb-bar.ok { fill: var(--fluid); }
+[data-look="charcoal"] .carb-bar.under { fill: var(--lap); }
+[data-look="charcoal"] .carb-bar.over { fill: #ffd38a; }
+[data-look="charcoal"] .carb-bar.food { fill: var(--lap); }
+[data-look="charcoal"] .carb-bar.drink { fill: var(--fluid); }
+.key { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin: 0 5px 0 10px; vertical-align: -1px; }
+.key.food, .key.under { background: var(--lap); }
+.key.drink, .key.ok { background: var(--fluid); }
+.key.over { background: #ffd38a; }
+.option[aria-pressed="true"] { background: var(--lap) !important; color: var(--on-accent) !important; }
+.big-btn.option { font-size: 16px; padding: 12px 6px; }

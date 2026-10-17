@@ -95,26 +95,38 @@ export function LapChart({ laps, yards, modern = false }: { laps: LapPoint[]; ya
   </svg>;
 }
 
-export function CarbsPerYard({ points, yards, modern = false }: { points: IntakePoint[]; yards: number; modern?: boolean }) {
-  const f: Frame = { w: 720, h: 196, l: 52, r: 74, t: 20, b: 32, yards };
+export type CarbsVariant = 'wide' | 'status' | 'split';
+
+export function CarbsPerYard({ points, yards, modern = false, variant = 'wide' }: { points: IntakePoint[]; yards: number; modern?: boolean; variant?: CarbsVariant }) {
+  const f: Frame = { w: 720, h: 196, l: 52, r: 74, t: modern ? 30 : 20, b: 32, yards };
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
-  const bw = modern ? Math.max(4, Math.min(22, colW(f) * 0.42)) : Math.max(4, colW(f) - 6);
+  const bw = modern ? Math.max(4, Math.min(44, colW(f) * 0.7)) : Math.max(4, colW(f) - 6);
   const band = points[0] ?? { carbMin: 50, carbMax: 60 };
+  const status = (p: IntakePoint) => p.carbs < p.carbMin ? 'under' : p.carbs > p.carbMax ? 'over' : 'ok';
   return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label="Carbs per yard against 50 to 60 gram target">
     <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} rx={modern ? 4 : 0} />
     <text className="band-label" x={f.w - f.r + 6} y={y((band.carbMin + band.carbMax) / 2) + 6}>{band.carbMin}–{band.carbMax}</text>
-    {modern && Array.from({ length: yards }, (_, i) => i + 1).map(yd => <rect key={`t${yd}`} className="track" x={xOf(f, yd) - bw / 2} y={y(hi)} width={bw} height={y(0) - y(hi)} rx={bw / 2} />)}
     {points.map(p => { const x = xOf(f, p.yard) - bw / 2; const top = y(p.carbs), height = y(0) - top;
+      const label = p.hasEntries || (p.current && p.carbs > 0) ? `${Math.round(p.carbs)}${p.incomplete ? '+?' : ''}` : '';
+      let bars: React.ReactNode;
+      if (!modern) bars = <path className="carb-bar" d={topRounded(x, top, bw, height)} />;
+      else if (variant === 'split') {
+        const foodTop = y(p.foodCarbs), drinkTop = y(p.foodCarbs + p.drinkCarbs);
+        const gap = p.foodCarbs > 0 && p.drinkCarbs > 0 ? 2 : 0;
+        bars = <>
+          {p.foodCarbs > 0 && <path className="carb-bar food" d={p.drinkCarbs > 0 ? `M${x},${y(0)}V${foodTop}H${x + bw}V${y(0)}Z` : topRounded(x, foodTop, bw, y(0) - foodTop, 8)} />}
+          {p.drinkCarbs > 0 && <path className="carb-bar drink" d={topRounded(x, drinkTop, bw, foodTop - drinkTop - gap, 8)} />}
+        </>;
+      } else bars = <path className={variant === 'status' ? `carb-bar ${status(p)}` : 'carb-bar'} d={topRounded(x, top, bw, height, 8)} />;
       return <g key={p.yard} className={p.current ? 'current' : undefined}>
-        {modern
-          ? height > 0 && <rect className="carb-bar" x={x} y={top} width={bw} height={Math.max(height, bw)} rx={bw / 2} />
-          : <path className="carb-bar" d={topRounded(x, top, bw, height)} />}
+        {bars}
         {!p.hasEntries && !p.current && <text className="muted-mark" x={xOf(f, p.yard)} y={y(0) - 8} textAnchor="middle">–</text>}
-        {p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">?</text>}
+        {modern ? label && <text className="bar-value" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">{label}</text>
+          : p.incomplete && <text className="muted-mark" x={xOf(f, p.yard)} y={top - 8} textAnchor="middle">?</text>}
       </g>; })}
     <YardAxis f={f} />
   </svg>;

@@ -9,6 +9,8 @@ import { useRaceLog } from './hooks/useRaceLog';
 import { Login } from './components/Login';
 import { LogPage } from './pages/LogPage';
 import { applyLook } from './lib/look';
+import { initialCarbsVariant, saveCarbsVariant } from './lib/carbsVariant';
+import type { CarbsVariant } from './components/Charts';
 
 const clockTime = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit' });
 const n = (v: number) => Math.round(v).toLocaleString('en-GB');
@@ -22,6 +24,8 @@ export type RaceLog = ReturnType<typeof useRaceLog>;
 function App() {
   const log = useRaceLog();
   useEffect(() => applyLook(), []);
+  const [carbs, setCarbs] = useState<CarbsVariant>(initialCarbsVariant);
+  const pickCarbs = (v: CarbsVariant) => { setCarbs(v); saveCarbsVariant(v); };
   const pager = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(() => location.hash === '#log' ? 1 : 0);
   const goTo = (i: number) => pager.current?.scrollTo({ left: i * pager.current.clientWidth, behavior: 'smooth' });
@@ -43,14 +47,14 @@ function App() {
   return <>
     <div className="top-cap" aria-hidden="true" />
     <div className="pager" ref={pager}>
-      <section className="page" aria-label="Dashboard"><Dashboard log={log} onLog={() => goTo(1)} /></section>
-      <section className="page" aria-label="Log food and drink"><LogPage log={log} onDashboard={() => goTo(0)} /></section>
+      <section className="page" aria-label="Dashboard"><Dashboard log={log} carbs={carbs} onLog={() => goTo(1)} /></section>
+      <section className="page" aria-label="Log food and drink"><LogPage log={log} carbs={carbs} onCarbs={pickCarbs} onDashboard={() => goTo(0)} /></section>
     </div>
     <nav className="dots" aria-label="Pages">{['Dashboard', 'Log'].map((label, i) => <button key={label} aria-label={label} aria-current={page === i} onClick={() => goTo(i)} />)}</nav>
   </>;
 }
 
-function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
+function Dashboard({ log, carbs, onLog }: { log: RaceLog; carbs: CarbsVariant; onLog: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
   const { snapshot, error } = useOfficialLaps();
@@ -102,8 +106,8 @@ function Dashboard({ log, onLog }: { log: RaceLog; onLog: () => void }) {
     </section>
 
     <section className="panel">
-      <h2>Carbs per yard <span className="unit">g · ? = unknown carbs logged</span></h2>
-      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} /> : <p className="empty">No intake data yet. Log in below.</p>}
+      <h2>Carbs per yard <span className="unit">{carbs === 'split' ? <><i className="key food" />food <i className="key drink" />drink · g</> : carbs === 'status' ? <><i className="key ok" />on plan <i className="key under" />under <i className="key over" />over · g</> : 'g · +? = some carbs unknown'}</span></h2>
+      {hasIntake ? <CarbsPerYard points={intake} yards={yards} modern={modern} variant={carbs} /> : <p className="empty">No intake data yet. Log in below.</p>}
     </section>
 
     {hasIntake && <section className="pair">
