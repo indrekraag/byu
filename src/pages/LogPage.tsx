@@ -195,7 +195,9 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
             <div><span className="label">{yardOffset ? 'Logging to' : 'Yard'}</span><strong>{yard}</strong></div>
             <button aria-label="Next yard" disabled={yardOffset >= 0} onClick={() => setYardOffset(o => Math.min(0, o + 1))}>+</button>
           </div>
-          <div className="log-clock"><span className="label">Next start</span><strong className={started ? `${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : undefined}>{started ? <Digits text={formatClock(clock.msToNextLap)} /> : '—'}</strong></div>
+          {log.finished
+            ? <div className="log-clock"><span className="label">Finished</span><strong><Digits text={hhmm(log.finished.at)} /></strong></div>
+            : <div className="log-clock"><span className="label">Next start</span><strong className={started ? `${countdownClass(clock.msToNextLap)}${clock.msToNextLap > 20 * 60_000 ? ' calm' : ''}` : undefined}>{started ? <Digits text={formatClock(clock.msToNextLap)} /> : '—'}</strong></div>}
         </header>
         <div className="progress">
           <div className="meter"><span className="meter-label">Carbs</span><span className="bar"><span className={totals.carbs >= target.carbMin ? 'fill ok' : 'fill'} style={{ width: `${Math.min(100, totals.carbs / target.carbMax * 100)}%` }} /></span><span className="meter-value"><b>{Math.round(totals.carbs)}{totals.incomplete ? '+?' : ''} g</b> / {target.carbMin}–{target.carbMax}</span></div>
