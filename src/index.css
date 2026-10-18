@@ -701,3 +701,5 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
   .pair { grid-template-columns: 1fr !important; }
   .panel h2 .unit { display: block; margin: 2px 0 0; }
 }
+/* Pinned y-axis labels scale with the chart's height (exact match at any width). */
+.y-pin { top: 0; bottom: 0; height: 100%; width: auto !important; }

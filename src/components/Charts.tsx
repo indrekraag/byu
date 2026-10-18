@@ -11,10 +11,13 @@ type Frame = { w: number; h: number; l: number; r: number; t: number; b: number;
 // Past VISIBLE yards a chart keeps its column width and grows wider than its
 // card; the card scrolls sideways (see ChartFrame).
 const VISIBLE = 12;
-function frame(base: number, h: number, l: number, r: number, t: number, b: number, yards: number): Frame {
-  const col = (base - l - r) / VISIBLE;
-  return { w: yards > VISIBLE ? l + r + col * yards : base, h, l, r, t, b, yards };
+function frame(base: number, h: number, l: number, r: number, t: number, b: number, yards: number, visible = VISIBLE): Frame {
+  const col = (base - l - r) / visible;
+  return { w: yards > visible ? l + r + col * yards : base, h, l, r, t, b, yards };
 }
+// Phones: draw at phone scale (narrower base, fewer yards visible, the rest
+// scrolls), so chart text stays ~14 px instead of shrinking to half.
+const isCompact = () => typeof window !== 'undefined' && window.innerWidth < 700;
 
 /** Renders a chart; when it is wider than its card, scrolls sideways with the
  *  y-axis labels pinned, and follows the newest yard unless scrolled back. */
@@ -31,7 +34,7 @@ function ChartFrame({ f, base, label, ticks, lo, hi, fmt, children }: { f: Frame
     <div className="chart-scroll" ref={box} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8; }}>
       <svg viewBox={`0 0 ${f.w} ${f.h}`} style={{ width: `${f.w / base * 100}%` }} role="img" aria-label={label}>{children}</svg>
     </div>
-    <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} style={{ width: `${f.l / base * 100}%` }} aria-hidden="true">
+    <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} aria-hidden="true">
       <rect className="y-pin-bg" x="0" y="0" width={f.l} height={f.h} />
       <g className="grid">{ticks.map(v => <text key={v} x={f.l - 8} y={yOf(f, v, lo, hi) + 6} textAnchor="end">{fmt(v)}</text>)}</g>
     </svg>
@@ -117,7 +120,8 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
 }
 
 export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
-  const f = frame(720, 206 + extra, 52, modern ? 96 : 74, 16, 32, yards); // 20% shorter than before
+  const compact = isCompact(), base = compact ? 420 : 720;
+  const f = frame(base, (compact ? 230 : 206) + extra, 52, compact ? 20 : modern ? 96 : 74, 16, 32, yards, compact ? 7 : VISIBLE); // 20% shorter than before
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -126,7 +130,7 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
   const pts = laps.map(p => [xOf(f, p.yard), y(p.lapMs / 60000)] as [number, number]);
   const line = modern ? smoothPath(pts) : pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join('');
   const area = modern && pts.length > 1 ? `${line}L${pts[pts.length - 1][0]},${f.h - f.b}L${pts[0][0]},${f.h - f.b}Z` : '';
-  return <ChartFrame f={f} base={720} label="Lap time per yard against plan band" ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`}>
+  return <ChartFrame f={f} base={base} label="Lap time per yard against plan band" ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={lo} hi={hi} fmt={v => `${v}`} />
     {Array.from({ length: yards }, (_, i) => i + 1).map(yard => { const b = planBand(yard); const top = y(b.maxMin), bottom = b.minMin === null ? f.h - f.b : y(b.minMin);
@@ -164,13 +168,14 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
 }
 
 export function CarbsPerYard({ points, yards, modern = false, selected, onSelect, extra = 0 }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void; extra?: number }) {
-  const f = frame(720, 196 + extra, 52, 74, modern ? 30 : 20, 32, yards);
+  const compact = isCompact(), base = compact ? 420 : 720;
+  const f = frame(base, (compact ? 210 : 196) + extra, 44, compact ? 52 : 74, modern ? 30 : 20, 32, yards, compact ? 7 : VISIBLE);
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
   const bw = modern ? Math.max(4, Math.min(44, colW(f) * 0.7)) : Math.max(4, colW(f) - 6);
   const band = points[0] ?? { carbMin: 50, carbMax: 60 };
-  return <ChartFrame f={f} base={720} label="Carbs per yard against 50 to 60 gram target" ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`}>
+  return <ChartFrame f={f} base={base} label="Carbs per yard against 50 to 60 gram target" ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`}>
     <Defs />
     <Grid f={f} ticks={ticks} lo={0} hi={hi} fmt={v => `${v}`} />
     <rect className="band" x={f.l} width={f.w - f.l - f.r} y={y(band.carbMax)} height={y(band.carbMin) - y(band.carbMax)} rx={modern ? 4 : 0} />
@@ -194,7 +199,8 @@ export function CarbsPerYard({ points, yards, modern = false, selected, onSelect
 /** Running total vs plan. `points` = finished yards (the actual line stops
  *  there); `plan` = every yard through the current one, for the target path. */
 export function Cumulative({ points, plan = points, yards, kind, modern = false }: { points: IntakePoint[]; plan?: IntakePoint[]; yards: number; kind: 'carbs' | 'fluid'; modern?: boolean }) {
-  const f = frame(360, 186, 58, 16, 20, 32, yards);
+  const compact = isCompact();
+  const f = frame(360, 186, 58, 16, 20, 32, yards, compact ? 9 : VISIBLE);
   const val = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbs : p.cumFluid / 1000;
   const lo = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMin : p.cumFluidMin / 1000;
   const hiB = (p: IntakePoint) => kind === 'carbs' ? p.cumCarbMax : p.cumFluidMax / 1000;
