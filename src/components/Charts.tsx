@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { IntakePoint, LapPoint } from '../lib/dashData';
 import { planBand } from '../lib/dashData';
 import { formatClock } from '../lib/raceClock';
@@ -25,6 +25,15 @@ function ChartFrame({ f, base, label, ticks, lo, hi, fmt, children }: { f: Frame
   const box = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const wide = f.w > base;
+  // Pinned axis labels get the chart's measured height (exact at any width).
+  const [pinH, setPinH] = useState(0);
+  useEffect(() => {
+    const svg = box.current?.querySelector('svg');
+    if (!svg || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setPinH(svg.getBoundingClientRect().height));
+    ro.observe(svg);
+    return () => ro.disconnect();
+  }, [wide]);
   useEffect(() => {
     const el = box.current;
     if (el && wide && follow.current) el.scrollLeft = el.scrollWidth;
@@ -34,7 +43,7 @@ function ChartFrame({ f, base, label, ticks, lo, hi, fmt, children }: { f: Frame
     <div className="chart-scroll" ref={box} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8; }}>
       <svg viewBox={`0 0 ${f.w} ${f.h}`} style={{ width: `${f.w / base * 100}%` }} role="img" aria-label={label}>{children}</svg>
     </div>
-    <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} aria-hidden="true">
+    <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} style={pinH ? { height: `${pinH}px`, width: `${pinH * f.l / f.h}px` } : { width: `${f.l / base * 100}%` }} aria-hidden="true">
       <rect className="y-pin-bg" x="0" y="0" width={f.l} height={f.h} />
       <g className="grid">{ticks.map(v => <text key={v} x={f.l - 8} y={yOf(f, v, lo, hi) + 6} textAnchor="end">{fmt(v)}</text>)}</g>
     </svg>
