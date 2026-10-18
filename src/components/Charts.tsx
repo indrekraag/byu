@@ -130,7 +130,7 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
 
 export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
   const compact = isCompact(), base = compact ? 420 : 720;
-  const f = frame(base, (compact ? 230 : 206) + extra, 52, compact ? 20 : modern ? 96 : 74, 16, 32, yards, compact ? 7 : VISIBLE); // 20% shorter than before
+  const f = frame(base, (compact ? 230 : 206) + extra, 52, compact ? 50 : modern ? 96 : 74, 16, 32, yards, compact ? 7 : VISIBLE); // 20% shorter than before
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -178,7 +178,7 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
 
 export function CarbsPerYard({ points, yards, modern = false, selected, onSelect, extra = 0 }: { points: IntakePoint[]; yards: number; modern?: boolean; selected?: number | null; onSelect?: (yard: number) => void; extra?: number }) {
   const compact = isCompact(), base = compact ? 420 : 720;
-  const f = frame(base, (compact ? 210 : 196) + extra, 44, compact ? 52 : 74, modern ? 30 : 20, 32, yards, compact ? 7 : VISIBLE);
+  const f = frame(base, (compact ? 210 : 196) + extra, 44, compact ? 62 : 74, modern ? 30 : 20, 32, yards, compact ? 7 : VISIBLE);
   const hi = Math.max(80, Math.ceil((Math.max(0, ...points.map(p => p.carbs)) + 10) / 20) * 20);
   const ticks: number[] = []; for (let v = 0; v <= hi; v += 20) ticks.push(v);
   const y = (v: number) => yOf(f, v, 0, hi);
