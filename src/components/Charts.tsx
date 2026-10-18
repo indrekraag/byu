@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { IntakePoint, LapPoint } from '../lib/dashData';
 import { planBand } from '../lib/dashData';
-import { formatClock } from '../lib/raceClock';
+import { formatClock, raceStartUtc } from '../lib/raceClock';
+import { yardStart } from '../lib/raceHQ';
+import { RACE } from '../data/raceConfig';
 
 // Wall display: nobody touches it, so values are direct-labelled instead of
 // living in hover tooltips. All charts share the same yard x-scale.
@@ -123,15 +125,22 @@ function Defs() {
 // Every yard number is shown; the type shrinks with the column. Only when a
 // column is too narrow even for small type (a long race on the small charts)
 // does it fall back to every second yard.
-function YardAxis({ f }: { f: Frame }) {
+// `hours`: the yard's start time in small type under each number, so a yard
+// number is never read as a time of day. Sized in chart units to come out at
+// the card subtitle's 13 px (11 px on phones, where columns are narrower).
+const startHour = (y: number) => yardStart(raceStartUtc(), y).toLocaleTimeString('en-GB', { timeZone: RACE.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+function YardAxis({ f, hours }: { f: Frame; hours?: boolean }) {
   const w = colW(f), widest = String(f.yards).length;
   const size = Math.min(16, (w - 2) / (0.62 * widest));
   const every = size >= 9 ? 1 : 2;
   const fs = Math.max(size, 9);
+  const hs = isCompact() ? 14.5 : 13.6;
   return <g className="axis">
     <line x1={f.l} x2={f.w - f.r} y1={f.h - f.b} y2={f.h - f.b} />
-    {Array.from({ length: f.yards }, (_, i) => i + 1).filter(y => every === 1 || y % every === 0 || y === 1).map(y =>
-      <text key={y} x={xOf(f, y)} y={f.h - f.b + 22} textAnchor="middle" style={{ fontSize: `${fs}px` }}>{y}</text>)}
+    {Array.from({ length: f.yards }, (_, i) => i + 1).filter(y => every === 1 || y % every === 0 || y === 1).map(y => <g key={y}>
+      <text x={xOf(f, y)} y={f.h - f.b + 22} textAnchor="middle" style={{ fontSize: `${fs}px` }}>{y}</text>
+      {hours && <text className="axis-hour" x={xOf(f, y)} y={f.h - f.b + 22 + hs + 4} textAnchor="middle" style={{ fontSize: `${hs}px` }}>{startHour(y)}</text>}
+    </g>)}
   </g>;
 }
 
@@ -144,7 +153,8 @@ function Grid({ f, ticks, lo, hi, fmt }: { f: Frame; ticks: number[]; lo: number
 
 export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: { laps: LapPoint[]; yards: number; modern?: boolean; extra?: number; tags?: Record<number, string[]> }) {
   const compact = isCompact(), base = compact ? 420 : 720;
-  const f = frame(base, (compact ? 230 : 206) + extra, 52, compact ? 50 : modern ? 96 : 74, 16, 32, yards, compact ? 7 : VISIBLE); // 20% shorter than before
+  // Bottom margin +18 for the start times under the yard numbers; plot height unchanged.
+  const f = frame(base, (compact ? 248 : 224) + extra, 52, compact ? 50 : modern ? 96 : 74, 16, 50, yards, compact ? 7 : VISIBLE); // 20% shorter than before
   const minLap = Math.min(...laps.map(p => p.lapMs / 60000), 44);
   const lo = Math.max(0, Math.floor((minLap - 2) / 5) * 5), hi = 60;
   const ticks: number[] = []; for (let v = lo; v <= hi; v += 5) ticks.push(v);
@@ -186,7 +196,7 @@ export function LapChart({ laps, yards, modern = false, extra = 0, tags = {} }: 
     {last && (modern
       ? <Callout x={xOf(f, last.yard)} y={y(last.lapMs / 60000)} minX={f.l} maxX={f.w - 4} top={f.t} text={formatClock(last.lapMs)} />
       : <text className="value-label" x={Math.min(xOf(f, last.yard) + 12, f.w - f.r + 6)} y={y(last.lapMs / 60000) + 7}>{formatClock(last.lapMs)}</text>)}
-    <YardAxis f={f} />
+    <YardAxis f={f} hours />
   </ChartFrame>;
 }
 

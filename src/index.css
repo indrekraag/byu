@@ -708,3 +708,5 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
   .log-hero .yard-pick { gap: 6px; }
   .log-hero .yard-pick button { width: 38px; height: 38px; font-size: 20px; }
 }
+/* Start time under each yard number (lap chart): the subtitle's muted ink. */
+.axis text.axis-hour { fill: var(--muted); font-weight: 400; opacity: .85; }
