@@ -34,13 +34,27 @@ function ChartFrame({ f, base, label, ticks, lo, hi, fmt, children }: { f: Frame
     ro.observe(svg);
     return () => ro.disconnect();
   }, [wide]);
+  // A new yard always brings the chart back to the newest yard.
+  const lastYards = useRef(f.yards);
+  if (f.yards !== lastYards.current) { lastYards.current = f.yards; follow.current = true; }
+  const toEnd = () => { const el = box.current; if (el && wide) el.scrollLeft = el.scrollWidth; };
   useEffect(() => {
-    const el = box.current;
-    if (el && wide && follow.current) el.scrollLeft = el.scrollWidth;
+    if (!follow.current) return;
+    toEnd();
+    const raf = requestAnimationFrame(toEnd); // again after layout (Safari)
+    return () => cancelAnimationFrame(raf);
   });
+  // Scrolled back (or nudged by a page swipe): return to the newest yard after 30 s.
+  const idle = useRef(0);
+  useEffect(() => () => window.clearTimeout(idle.current), []);
+  const onScroll = (el: HTMLDivElement) => {
+    follow.current = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8;
+    window.clearTimeout(idle.current);
+    if (!follow.current) idle.current = window.setTimeout(() => { follow.current = true; toEnd(); }, 30_000);
+  };
   if (!wide) return <svg viewBox={`0 0 ${f.w} ${f.h}`} role="img" aria-label={label}>{children}</svg>;
   return <div className="chart-wrap">
-    <div className="chart-scroll" ref={box} onScroll={e => { const el = e.currentTarget; follow.current = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8; }}>
+    <div className="chart-scroll" ref={box} onScroll={e => onScroll(e.currentTarget)}>
       <svg viewBox={`0 0 ${f.w} ${f.h}`} style={{ width: `${f.w / base * 100}%` }} role="img" aria-label={label}>{children}</svg>
     </div>
     <svg className="y-pin" viewBox={`0 0 ${f.l} ${f.h}`} style={pinH ? { height: `${pinH}px`, width: `${pinH * f.l / f.h}px` } : { width: `${f.l / base * 100}%` }} aria-hidden="true">
