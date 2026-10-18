@@ -12,6 +12,7 @@ import { readJournal, readSnapshots, toCsv } from '../lib/backup';
 import { DRINK_STEP, FOODS, LAP_BOTTLE_LEFT, NOTES, PRESET_TEXTS, amountIn, customFood, lapBottleDrunk, portionOf, type Food } from '../data/foods';
 import { countdownClass } from '../lib/countdown';
 import { Digits } from '../components/Digits';
+import { YardSchedule } from '../components/YardSchedule';
 import type { IntakeEvent } from '../lib/raceHQ';
 import { EVENT_PREFIX, NOTE_PREFIX, type EditPatch } from '../lib/raceLog';
 import { targetsForYard } from '../lib/yardTargets';
@@ -262,6 +263,8 @@ export function LogPage({ log, footer }: { log: RaceLog; footer: ReactNode }) {
         </section>
       </div>
     </div>
+
+    <YardSchedule start={start} now={now} current={clock.lapNumber} records={log.records} />
 
     <section className="card backup">
       <h2>Backup &amp; tools</h2>
