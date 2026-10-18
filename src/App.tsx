@@ -129,6 +129,8 @@ function Dashboard({ log, official, footer, active }: { log: RaceLog; official: 
     let frame = 0;
     const measure = () => {
       cancelAnimationFrame(frame);
+      // Phones scroll: charts keep their natural size there (no fill).
+      if (window.innerWidth < 700) { setFill(0); return; }
       frame = requestAnimationFrame(() => {
         const style = getComputedStyle(page);
         const room = page.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);

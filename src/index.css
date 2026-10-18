@@ -680,3 +680,24 @@ svg text.target-label { fill: var(--muted); font-size: 13px; }
 .sched-legend { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 .sched-legend .lg { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin: 0 3px -1px 0; }
 .lg.now { background: var(--ok); } .lg.done { background: rgba(255,255,255,.3); } .lg.mark { background: var(--food); border-radius: 50%; }
+
+/* ===== Phones (< 700 px): the iPad layout stays as it is. ===== */
+@media (max-width: 699px) {
+  /* Hero card in two rows: the time across the top, yard | next start below. */
+  .stats.carded { flex-wrap: wrap; justify-content: space-between; row-gap: 6px; padding: 12px 16px 10px !important; }
+  .stats.carded > .sep { display: none !important; }
+  .stats.carded > .stat:nth-of-type(2) { order: -1; flex: 0 0 100% !important; }
+  .stats.carded > .stat:nth-of-type(2) .label.spacer { display: none !important; }
+  .stats.carded .hero { font-size: 46px !important; }
+  .stats.carded > .stat:nth-of-type(2) .hero { font-size: 64px !important; }
+  .stats.carded > .stat:nth-of-type(2) .time-line { height: auto !important; }
+  .stats.carded .time-sub { font-size: 16px !important; gap: 16px !important; }
+  .stats.carded .time-sub .sun-icon { width: 20px; height: 20px; }
+  .stats.carded .km { font-size: 15px !important; }
+  .stats.carded > .stat:first-of-type { align-items: flex-start; text-align: left; }
+  .stats.carded > .stat:first-of-type .yard-line { align-items: flex-start; }
+  .stats.carded > .stat:last-of-type { align-items: flex-end; text-align: right; }
+  /* Running totals stacked, full width each. */
+  .pair { grid-template-columns: 1fr !important; }
+  .panel h2 .unit { display: block; margin: 2px 0 0; }
+}
