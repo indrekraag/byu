@@ -13,8 +13,8 @@ const fmt = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleString('en-GB'
 export function YardSchedule({ start, now, current, records }: { start: Date; now: Date; current: number; records: Record<string, YardRecord> }) {
   const [open, setOpen] = useState(false);
   const laps = new Map(lapLog(records, start, now).map(l => [l.yard, l.lapMs]));
-  // Through the end of the day 12 yards from now, so the next night is always visible.
-  const lastYard = Math.max(36, current + 12);
+  // Through yard 45 (or 12 yards past the current one, if later).
+  const lastYard = Math.max(45, current + 12);
   const days: { label: string; yards: number[] }[] = [];
   for (let y = 1; y <= lastYard; y++) {
     const label = fmt(yardStart(start, y), { weekday: 'short', day: 'numeric' });
