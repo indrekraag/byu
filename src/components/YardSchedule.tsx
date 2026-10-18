@@ -5,8 +5,9 @@ import { formatClock } from '../lib/raceClock';
 import { yardStart, type YardRecord } from '../lib/raceHQ';
 
 // Every yard and when it starts, one row per day. Done yards show their lap
-// time (dimmed), the current yard is outlined, milestones are marked.
-const MILESTONES: Record<number, string> = { 15: '100 km', 24: 'full day', 28: '2024 finish', 30: '200 km' };
+// time (dimmed), the current yard is outlined. A milestone is marked on the
+// start it is reached at: 24 h is complete when yard 25 starts (15:00 next day).
+const MILESTONES: Record<number, string> = { 16: '100 km done', 25: '24 h done', 29: 'past 2024 (28 yards)', 31: '200 km done' };
 const fmt = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleString('en-GB', { timeZone: RACE.timezone, ...o });
 
 export function YardSchedule({ start, now, current, records }: { start: Date; now: Date; current: number; records: Record<string, YardRecord> }) {
@@ -34,7 +35,7 @@ export function YardSchedule({ start, now, current, records }: { start: Date; no
           </div>;
         })}</div>
       </div>)}
-      <p className="sched-legend"><span className="lg now" /> now · <span className="lg done" /> done (lap time) · <span className="lg mark" /> milestone: 15 = 100 km, 24 = full day, 28 = 2024 finish, 30 = 200 km</p>
+      <p className="sched-legend"><span className="lg now" /> now · <span className="lg done" /> done (lap time) · <span className="lg mark" /> milestone reached at that start: 16 = 100 km, 25 = 24 h, 29 = past 2024's 28 yards, 31 = 200 km</p>
     </>}
   </section>;
 }
