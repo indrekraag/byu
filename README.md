@@ -16,3 +16,17 @@ npm ci && npm test && npm run build    # deploy: push to main (GitHub Actions �
 ```
 
 iPad: Settings → Display & Brightness → Auto-Lock → Never (Safari 15 has no screen wake lock).
+
+## Between races (offline since 2026-10-20)
+
+After Heavy Metal Ultra 2026 the site was taken offline; all code and data are kept.
+
+- GitHub Pages is **switched off** for this repo and the "Deploy to GitHub Pages" workflow is **disabled**.
+- The race data stays in Supabase (crew login only) and in the `byu-backup` repo.
+
+To bring it back for the next race:
+
+1. Update `src/data/raceConfig.ts` (date, start time, bib, plan bands).
+2. Repo Settings → Pages → Source: **GitHub Actions**.
+3. `gh workflow enable "Deploy to GitHub Pages" -R indrekraag/byu`, then push (or run the workflow) to deploy.
+4. Clear or archive the previous race's rows in Supabase before the new start.
